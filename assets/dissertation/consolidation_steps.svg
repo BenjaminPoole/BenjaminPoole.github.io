@@ -1,0 +1,109 @@
+<svg width="100%" viewBox="0 0 680 580" role="img" xmlns="http://www.w3.org/2000/svg">
+<title>Insights and heuristic consolidation with episode excerpts</title>
+<desc>After each episode, an insights model extracts lessons and appends them to heuristics. Every four tasks, heuristics are consolidated.</desc>
+
+<style>
+  svg { font-family: "Anthropic Sans", -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif; font-size: 14px; }
+  .mono  { font-family: ui-monospace, monospace; font-size: 12px; }
+  .label { font-size: 14px; font-weight: 500; fill: #141413; }
+  .dim   { fill: #3d3d3a; }
+  .box-bg     { fill: #f5f4ed; stroke: rgba(31,30,29,0.3); stroke-width: 0.5; }
+  .box-red    { fill: #faece7; stroke: #993c1d; stroke-width: 0.5; }
+  .box-purple { fill: #eeedfe; stroke: #534ab7; stroke-width: 0.5; }
+  .box-orange { fill: #fff3e8; stroke: #d4620a; stroke-width: 0.5; }
+  .box-green  { fill: #e8f5e9; stroke: #2e7d32; stroke-width: 0.5; }
+  .arrow { fill: none; stroke: #737270; stroke-width: 1.5; }
+</style>
+
+<defs>
+  <marker id="arrow" viewBox="0 0 10 10" refX="8" refY="5" markerWidth="6" markerHeight="6" orient="auto-start-reverse">
+    <path d="M2 1L8 5L2 9" fill="none" stroke="context-stroke" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"/>
+  </marker>
+</defs>
+
+<!-- ======== SECTION 2 ======== -->
+<text x="40" y="20" class="label">1. Every 4 tasks, consolidate heuristics</text>
+
+<!-- Before: noisy heuristics -->
+<g>
+  <rect x="40" y="34" width="186" height="148" rx="6" class="box-bg"/>
+  <text x="54" y="54" class="label">Heuristics (noisy)</text>
+  <text x="54" y="74" class="mono dim" opacity=".5">"Always scan 360° first"</text>
+  <text x="54" y="90" class="mono dim" opacity=".5">"Scan environment before</text>
+  <text x="54" y="104" class="mono dim" opacity=".35"> acting"</text>
+  <text x="54" y="124" class="mono dim" opacity=".5">"Use list_pov_360 at the</text>
+  <text x="54" y="138" class="mono dim" opacity=".35"> start of every task"</text>
+  <text x="54" y="158" class="mono dim" opacity=".5">"Verify dist after nav"</text>
+  <text x="54" y="174" class="mono dim" opacity=".35">... (12 rules, overlap)</text>
+</g>
+
+<!-- Arrow → consolidation -->
+<line x1="226" y1="108" x2="266" y2="108" marker-end="url(#arrow)" class="arrow"/>
+
+<!-- Consolidation model -->
+<g>
+  <rect x="266" y="86" width="136" height="44" rx="8" class="box-purple"/>
+  <text x="334" y="113" text-anchor="middle" class="label" fill="#3c3489">Consolidation LLM</text>
+</g>
+
+<!-- Arrow → clean heuristics -->
+<line x1="402" y1="108" x2="442" y2="108" marker-end="url(#arrow)" class="arrow"/>
+
+<!-- After: clean heuristics -->
+<g>
+  <rect x="442" y="34" width="202" height="148" rx="6" class="box-bg"/>
+  <text x="456" y="54" class="label">Heuristics (clean)</text>
+  <text x="456" y="76" class="mono dim" opacity=".7">"Scan 360° before any</text>
+  <text x="456" y="90" class="mono dim" opacity=".7"> action on a new task"</text>
+  <text x="456" y="112" class="mono dim" opacity=".7">"Verify distance with</text>
+  <text x="456" y="126" class="mono dim" opacity=".7"> list_pov() after nav"</text>
+  <text x="456" y="148" class="mono dim" opacity=".7">"Use floor-level objects</text>
+  <text x="456" y="162" class="mono dim" opacity=".7"> to change elevation"</text>
+  <text x="456" y="174" class="mono dim" opacity=".35">... (7 rules, no overlap)</text>
+</g>
+
+<!-- Subtitle -->
+<text x="334" y="210" text-anchor="middle" opacity=".45" class="mono dim">Deduplicate and compress to reduce size and noise</text>
+
+<!-- ======== SECTION 3 ======== -->
+<text x="40" y="260" class="label">2. End-of-training final consolidation</text>
+
+<!-- Inputs group -->
+<g>
+  <rect x="40" y="274" width="196" height="136" rx="6" class="box-bg"/>
+  <text x="54" y="294" class="label">Training artefacts</text>
+  <text x="54" y="314" class="mono dim" opacity=".6">CLAUDE.md</text>
+  <text x="54" y="330" class="mono dim" opacity=".6">run.state.json</text>
+  <text x="54" y="346" class="mono dim" opacity=".6">student_prompt.txt</text>
+  <text x="54" y="362" class="mono dim" opacity=".6">teacher_prompt.txt</text>
+  <text x="54" y="378" class="mono dim" opacity=".6">train_out/out/1/run.json</text>
+  <text x="54" y="394" class="mono dim" opacity=".35">...</text>
+</g>
+
+<!-- Arrow → Claude Code -->
+<line x1="236" y1="342" x2="266" y2="342" marker-end="url(#arrow)" class="arrow"/>
+
+<!-- Claude Code box -->
+<g>
+  <rect x="266" y="316" width="136" height="52" rx="8" class="box-orange"/>
+  <image href="Claude favicon.ico" x="280" y="334" width="16" height="16"/>
+  <text x="303" y="342" dominant-baseline="central" class="label" fill="#a84d08">Claude Code</text>
+</g>
+
+<!-- Arrow → regenerated heuristics -->
+<line x1="402" y1="342" x2="442" y2="342" marker-end="url(#arrow)" class="arrow"/>
+
+<!-- Regenerated heuristics box -->
+<g>
+  <rect x="442" y="274" width="210" height="162" rx="6" class="box-green"/>
+  <text x="456" y="294" class="label">Regenerated heuristics (final)</text>
+  <text x="456" y="314" class="mono dim" opacity=".7">"Avoid repeating failed</text>
+  <text x="456" y="328" class="mono dim" opacity=".7"> actions on same object"</text>
+  <text x="456" y="346" class="mono dim" opacity=".7">"Robot reach limit ~1.2m</text>
+  <text x="456" y="360" class="mono dim" opacity=".7"> — reposition first"</text>
+  <text x="456" y="378" class="mono dim" opacity=".5">"Check affordances before</text>
+  <text x="456" y="392" class="mono dim" opacity=".5"> attempting grasp"</text>
+  <text x="456" y="412" class="mono dim" opacity=".35">... (full rewrite)</text>
+</g>
+
+</svg>

@@ -1,0 +1,850 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Benjamin Poole — gradient features + mini cards</title>
+<meta name="description" content="Benjamin Poole — machine learning and systems. MSc Artificial Intelligence, University of Edinburgh.">
+<style>
+  :root {
+    color-scheme:    dark;
+    --bg:            #0d0d0e;
+    --fg:            #e8e8e8;
+    --fg-muted:      #9b9b9b;
+    --fg-faint:      #6a6a6a;
+    --rule:          #262628;
+    --card:          #161618;
+    --card-hover:    #1c1c1f;
+    --chip:          #1e1e21;
+    --accent:        #ffffff;
+    --shadow:        0 1px 2px rgba(0,0,0,.4), 0 8px 24px rgba(0,0,0,.35);
+    --measure:       46rem;
+    --wide:          64rem;
+  }
+  /* dark is the default; light is opt-in through the toggle */
+  :root[data-theme="light"] {
+    color-scheme:    light;
+    --bg:            #ffffff;
+    --fg:            #1a1a1a;
+    --fg-muted:      #6b6b6b;
+    --fg-faint:      #9a9a9a;
+    --rule:          #e6e6e6;
+    --card:          #fafafa;
+    --card-hover:    #f4f4f4;
+    --chip:          #f2f2f2;
+    --accent:        #1a1a1a;
+    --shadow:        0 1px 2px rgba(0,0,0,.04), 0 8px 24px rgba(0,0,0,.06);
+  }
+
+  * { box-sizing: border-box; }
+  html { -webkit-text-size-adjust: 100%; }
+  body {
+    margin: 0;
+    background: var(--bg);
+    color: var(--fg);
+    font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Inter, Roboto, Helvetica, Arial, sans-serif;
+    font-size: 16px;
+    line-height: 1.75;
+    -webkit-font-smoothing: antialiased;
+    overflow-wrap: break-word;
+    transition: background-color .2s ease, color .2s ease;
+  }
+
+  a { color: inherit; }
+  p a, li a, .prose a {
+    text-decoration: none;
+    border-bottom: 1px solid var(--rule);
+    transition: border-color .15s ease, opacity .15s ease;
+  }
+  p a:hover, li a:hover, .prose a:hover { border-bottom-color: var(--accent); }
+
+  /* ---------- nav ---------- */
+  nav {
+    position: fixed;
+    top: 0; left: 0; right: 0;
+    display: flex;
+    justify-content: flex-end;
+    align-items: center;
+    gap: 1.4rem;
+    padding: 1.1rem 1.6rem;
+    font-size: .95rem;
+    z-index: 10;
+    background: linear-gradient(to bottom, var(--bg) 55%, transparent);
+  }
+  nav a, nav button {
+    color: var(--fg-muted);
+    text-decoration: none;
+    background: none;
+    border: 0;
+    padding: 0;
+    font: inherit;
+    cursor: pointer;
+    display: inline-flex;
+    align-items: center;
+    transition: color .15s ease;
+  }
+  nav a:hover, nav button:hover { color: var(--fg); }
+  nav svg { width: 18px; height: 18px; display: block; }
+  #moon { display: none; }
+  :root[data-theme="light"] #moon { display: block; }
+  :root[data-theme="light"] #sun  { display: none; }
+
+  /* ---------- layout ---------- */
+  main {
+    max-width: var(--wide);
+    margin: 0 auto;
+    padding: 7rem 1.6rem 6rem;
+  }
+  /* text keeps a comfortable measure; the project grid breaks out wider */
+  .col { max-width: var(--measure); margin-left: auto; margin-right: auto; }
+
+  h1 {
+    font-size: 2.4rem;
+    font-weight: 700;
+    letter-spacing: -.02em;
+    line-height: 1.2;
+    margin: 0 0 1.8rem;
+  }
+  h2 {
+    font-size: 1.55rem;
+    font-weight: 600;
+    letter-spacing: -.015em;
+    margin: 0 0 1.5rem;
+  }
+  main > section { margin-top: 4.75rem; }
+  p { margin: 0 0 1.3rem; color: var(--fg); }
+  .lead { font-size: 1.05rem; }
+  .muted { color: var(--fg-muted); }
+  .linkish { background: none; border: 0; padding: 0; font: inherit; color: inherit; text-decoration: underline; cursor: pointer; }
+
+  /* ---------- chip rows (antfu-style facts) ---------- */
+  .facts {
+    margin: 0 0 2rem;
+    display: grid;
+    grid-template-columns: auto 1fr;
+    gap: .5rem 1rem;
+    align-items: baseline;
+    font-size: .95rem;
+  }
+  .facts dt { color: var(--fg-muted); white-space: nowrap; }
+  .facts dd { margin: 0; min-width: 0; display: flex; flex-wrap: wrap; gap: .4rem; }
+  .chip {
+    display: inline-flex;
+    align-items: center;
+    gap: .35rem;
+    background: var(--chip);
+    border-radius: 6px;
+    padding: .1rem .5rem;
+    font-size: .9rem;
+    line-height: 1.6;
+  }
+  .chip svg {
+    width: .95rem;
+    height: .95rem;
+    flex: none;
+    color: var(--fg-muted);
+  }
+  /* real marks for the organisations */
+  .chip .logo {
+    width: .95rem;
+    height: .95rem;
+    flex: none;
+    object-fit: contain;
+    border-radius: 3px;
+  }
+  .chip a { border: 0; text-decoration: none; }
+  .chip a:hover { border: 0; }
+
+  hr {
+    border: 0;
+    border-top: 1px solid var(--rule);
+    width: 3rem;
+    margin: 3.5rem auto;
+  }
+
+  /* ---------- research experience (horizontal cards) ---------- */
+  .roles {
+    list-style: none;
+    margin: 0;
+    padding: 0;
+  }
+  .role {
+    display: grid;
+    grid-template-columns: 13rem 1fr;
+    gap: 1.5rem;
+    padding: 1.6rem 0;
+    border-top: 1px solid var(--rule);
+  }
+  .role:first-child { border-top: 0; padding-top: .2rem; }
+  .role .thumb {
+    aspect-ratio: 4 / 3;
+    height: auto;
+    min-height: 0;
+    border-radius: 8px;
+    align-self: start;
+  }
+  .role-body { padding: 0; }
+  .role h3 {
+    font-size: 1.05rem;
+    font-weight: 600;
+    letter-spacing: -.005em;
+    line-height: 1.35;
+    margin: 0 0 .15rem;
+  }
+  .role .org {
+    margin: 0 0 .55rem;
+    font-size: .9rem;
+    color: var(--fg-muted);
+  }
+  .role p {
+    margin: 0 0 .55rem;
+    font-size: .93rem;
+    line-height: 1.65;
+  }
+  .role p:last-child { margin-bottom: 0; }
+  .role .note { color: var(--fg-muted); font-size: .88rem; }
+
+  /* ---------- featured projects (hirok-style cards) ---------- */
+  #projects { position: relative; }
+  .projects {
+    display: grid;
+    grid-template-columns: repeat(auto-fill, minmax(15.5rem, 1fr));
+    gap: 1.1rem;
+    margin-bottom: 1.4rem;
+  }
+
+  /* hand-drawn nudge: the cards are links.
+     narrow screens get it under the heading; wide screens put it in the empty margin */
+  .click-hint {
+    display: flex;
+    align-items: center;
+    gap: .45rem;
+    margin: -.5rem 0 1rem;
+    color: var(--fg-faint);
+    pointer-events: none;
+  }
+  .click-hint span {
+    font-size: .85rem;
+    font-style: italic;
+    line-height: 1.3;
+    letter-spacing: .01em;
+  }
+  .click-hint svg {
+    display: block;
+    height: auto;
+    color: #70707a;
+  }
+  :root[data-theme="light"] .click-hint svg { color: #cfcfcf; }
+  .click-hint .hint-hook  { width: 2.5rem; flex: none; }
+  .click-hint .hint-curve { display: none; }
+
+  /* enough empty margin to hang the arrow beside the first card */
+  @media (min-width: 90rem) {
+    .click-hint {
+      position: absolute;
+      display: block;
+      top: 4.35rem;
+      right: calc(100% + 1rem);
+      width: 10.5rem;
+      margin: 0;
+    }
+    .click-hint span { display: block; padding-left: .15rem; }
+    .click-hint .hint-hook  { display: none; }
+    .click-hint .hint-curve { display: block; width: 100%; margin-top: .15rem; }
+  }
+
+  .project {
+    display: flex;
+    flex-direction: column;
+    background: var(--card);
+    border: 1px solid var(--rule);
+    border-radius: 12px;
+    overflow: hidden;
+    text-decoration: none;
+    color: inherit;
+    transition: transform .22s cubic-bezier(.2,.7,.3,1), box-shadow .22s ease, background-color .22s ease, border-color .22s ease;
+  }
+  .project:hover {
+    transform: translateY(-3px);
+    background: var(--card-hover);
+    border-color: transparent;
+    box-shadow: var(--shadow);
+  }
+  .thumb {
+    position: relative;
+    aspect-ratio: 16 / 10;
+    overflow: hidden;
+    background: var(--chip);
+  }
+  .thumb img {
+    width: 100%;
+    height: 100%;
+    object-fit: cover;
+    display: block;
+    transition: transform .4s cubic-bezier(.2,.7,.3,1);
+  }
+  .project:hover .thumb img { transform: scale(1.035); }
+  /* per-project image framing */
+  .thumb.fit-top img    { object-position: top center; }
+  .thumb.fit-left img   { object-position: left center; }
+  .thumb.contain        { background: #ffffff; }
+  .thumb.contain img    { object-fit: contain; }
+
+  /* a project with no screenshot: draw the artefact itself */
+  .thumb.code {
+    display: flex;
+    flex-direction: column;
+    justify-content: center;
+    gap: .3rem;
+    padding: .9rem 1rem;
+    background: var(--chip);
+  }
+  .thumb.code pre {
+    margin: 0;
+    font-family: ui-monospace, SFMono-Regular, "SF Mono", Menlo, Consolas, monospace;
+    font-size: .64rem;
+    line-height: 1.55;
+    white-space: pre;
+    overflow: hidden;
+  }
+  .thumb.code .src { color: var(--fg); }
+  .thumb.code .asm { color: var(--fg-faint); }
+  .thumb.code .arrow { font-size: .7rem; color: var(--fg-faint); line-height: 1; }
+
+  /* marker in the thumbnail corner: this card goes somewhere */
+  .linkmark {
+    position: absolute;
+    top: .6rem;
+    right: .6rem;
+    width: 1.7rem;
+    height: 1.7rem;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    border-radius: 50%;
+    background: rgba(255,255,255,.94);
+    color: #1a1a1a;
+    box-shadow: 0 1px 3px rgba(0,0,0,.35), 0 4px 14px rgba(0,0,0,.3);
+    transition: transform .22s cubic-bezier(.2,.7,.3,1), background-color .2s ease;
+  }
+  .linkmark svg { width: 14px; height: 14px; display: block; }
+  .project:hover .linkmark { transform: translate(2px,-2px); background: #fff; }
+
+  .body { padding: .95rem 1.05rem 1.15rem; }
+  .meta {
+    font-size: .78rem;
+    letter-spacing: .04em;
+    text-transform: uppercase;
+    color: var(--fg-faint);
+    margin-bottom: .3rem;
+  }
+  .project h3 {
+    font-size: 1rem;
+    font-weight: 600;
+    margin: 0 0 .35rem;
+    letter-spacing: -.005em;
+    line-height: 1.35;
+  }
+  .project p {
+    margin: 0;
+    font-size: .9rem;
+    line-height: 1.6;
+    color: var(--fg-muted);
+  }
+  /* a project demoted out of the card grid: one quiet row */
+  .list-label {
+    margin: 1.9rem 0 .1rem;
+    font-size: .78rem;
+    letter-spacing: .04em;
+    text-transform: uppercase;
+    color: var(--fg-faint);
+  }
+  .project-list {
+    list-style: none;
+    margin: 0;
+    padding: 0;
+    display: grid;
+    grid-template-columns: repeat(auto-fill, minmax(20rem, 1fr));
+    column-gap: 2.2rem;
+  }
+  .project-list a {
+    display: flex;
+    align-items: baseline;
+    gap: .9rem;
+    padding: .7rem 0;
+    border-bottom: 1px solid var(--rule);
+    color: var(--fg-muted);
+    transition: color .15s ease, border-color .15s ease;
+  }
+  .project-list a:hover { color: var(--fg); border-bottom-color: var(--accent); }
+  .project-list .t { font-size: .95rem; font-weight: 600; }
+  .project-list .m {
+    margin-left: auto;
+    font-size: .78rem;
+    letter-spacing: .04em;
+    text-transform: uppercase;
+    color: var(--fg-faint);
+    white-space: nowrap;
+  }
+
+
+  /* ---------- contact ---------- */
+  .links { display: flex; flex-wrap: wrap; gap: 1.1rem; margin-bottom: 1.4rem; }
+  .links a {
+    display: inline-flex;
+    align-items: center;
+    gap: .4rem;
+    text-decoration: none;
+    border-bottom: 1px solid var(--rule);
+    padding-bottom: 1px;
+  }
+  .links a:hover { border-bottom-color: var(--accent); }
+  .links svg { width: 16px; height: 16px; }
+  code {
+    font-family: ui-monospace, SFMono-Regular, "SF Mono", Menlo, Consolas, monospace;
+    font-size: .92em;
+  }
+  footer {
+    margin-top: 4rem;
+    font-size: .85rem;
+    color: var(--fg-faint);
+  }
+
+  @media (max-width: 640px) {
+    main { padding: 5.5rem 1.15rem 4rem; }
+    h1 { font-size: 2rem; }
+    .facts { grid-template-columns: 1fr; gap: .25rem; }
+    .facts dt { margin-top: .5rem; }
+    nav { gap: 1.1rem; padding: 1rem 1.15rem; }
+    .role { grid-template-columns: 1fr; gap: .9rem; }
+    .project-list { grid-template-columns: 1fr; }
+    .role .thumb { aspect-ratio: 16 / 10; min-height: 0; }
+  }
+
+  /* ===== variant 2: gradient features + mini cards ===== */
+  .feat-grid {
+    display: grid;
+    grid-template-columns: repeat(3, 1fr);
+    gap: 1.1rem;
+  }
+  .feat {
+    position: relative;
+    display: flex;
+    flex-direction: column;
+    min-height: 24rem;
+    padding: 1.2rem 1.2rem 1.35rem;
+    border-radius: 16px;
+    overflow: hidden;
+    text-decoration: none;
+    color: #fff;
+    isolation: isolate;
+    transition: transform .28s cubic-bezier(.2,.7,.3,1), box-shadow .28s ease;
+  }
+  .feat::before {
+    content: "";
+    position: absolute;
+    inset: 0;
+    z-index: -2;
+    background: var(--grad);
+  }
+  /* a soft bloom that drifts on hover, so the card feels lit rather than filled */
+  .feat::after {
+    content: "";
+    position: absolute;
+    inset: -30%;
+    z-index: -1;
+    background: var(--bloom);
+    opacity: .85;
+    transition: transform .5s cubic-bezier(.2,.7,.3,1), opacity .4s ease;
+  }
+  .feat:hover { transform: translateY(-4px); box-shadow: 0 10px 34px rgba(0,0,0,.28); }
+  .feat:hover::after { transform: scale(1.12) translateY(-3%); opacity: 1; }
+
+  .feat.violet   { --grad: linear-gradient(158deg, #4c1d95 0%, #2a0d52 55%, #1c0838 100%);
+                   --bloom: radial-gradient(46% 40% at 24% 10%, rgba(192,132,252,.5), transparent 70%); }
+  .feat.azure    { --grad: linear-gradient(158deg, #2c5182 0%, #1c3459 55%, #12203a 100%);
+                   --bloom: radial-gradient(46% 40% at 24% 10%, rgba(174,189,223,.55), transparent 70%); }
+  .feat.phosphor { --grad: linear-gradient(158deg, #14301f 0%, #0a1a11 55%, #050a07 100%);
+                   --bloom: radial-gradient(46% 40% at 24% 10%, rgba(74,222,128,.34), transparent 70%); }
+
+  .feat .fmeta {
+    font-size: .72rem;
+    letter-spacing: .08em;
+    text-transform: uppercase;
+    color: rgba(255,255,255,.62);
+    margin-bottom: .85rem;
+  }
+  /* the screenshot floats on the gradient instead of filling the card */
+  .feat .shot {
+    position: relative;
+    border-radius: 9px;
+    overflow: hidden;
+    aspect-ratio: 16 / 10;
+    background: rgba(0,0,0,.25);
+    box-shadow: 0 2px 6px rgba(0,0,0,.3), 0 14px 30px rgba(0,0,0,.34);
+    margin-bottom: 1.15rem;
+  }
+  /* the Ferranti shot is nearly black on a nearly black card: keep its edge */
+  .feat .shot::after {
+    content: "";
+    position: absolute;
+    inset: 0;
+    border-radius: inherit;
+    box-shadow: inset 0 0 0 1px rgba(255,255,255,.11);
+    pointer-events: none;
+  }
+  .feat .shot img {
+    width: 100%; height: 100%;
+    object-fit: cover;
+    display: block;
+    transition: transform .45s cubic-bezier(.2,.7,.3,1);
+  }
+  .feat:hover .shot img { transform: scale(1.04); }
+  .feat .shot.contain  { background: #fff; }
+  .feat .shot.contain img { object-fit: contain; }
+  .feat .shot.fit-top img { object-position: top center; }
+
+  .feat h3 {
+    font-size: 1.12rem;
+    font-weight: 650;
+    letter-spacing: -.01em;
+    line-height: 1.3;
+    margin: auto 0 .4rem;
+    color: #fff;
+  }
+  .feat p {
+    margin: 0;
+    font-size: .88rem;
+    line-height: 1.6;
+    color: rgba(255,255,255,.76);
+  }
+  .feat .go {
+    position: absolute;
+    top: 1.15rem; right: 1.15rem;
+    width: 1.05rem; height: 1.05rem;
+    color: rgba(255,255,255,.55);
+    transition: transform .25s cubic-bezier(.2,.7,.3,1), color .25s ease;
+  }
+  .feat:hover .go { transform: translateX(3px); color: #fff; }
+
+
+  /* --- second tier: small horizontal cards with a real thumbnail --- */
+  .more-head {
+    display: flex;
+    align-items: baseline;
+    justify-content: space-between;
+    margin: 2.9rem 0 .9rem;
+  }
+  .more-head h3 {
+    margin: 0;
+    font-size: .78rem;
+    font-weight: 600;
+    letter-spacing: .08em;
+    text-transform: uppercase;
+    color: var(--fg-faint);
+  }
+  .mini-grid {
+    display: grid;
+    grid-template-columns: repeat(2, 1fr);
+    gap: .6rem 1.1rem;
+  }
+  .mini {
+    display: flex;
+    align-items: center;
+    gap: .95rem;
+    padding: .7rem .85rem;
+    border: 1px solid var(--rule);
+    border-radius: 10px;
+    background: var(--bg);
+    text-decoration: none;
+    color: inherit;
+    transition: background-color .18s ease, border-color .18s ease, transform .18s ease;
+  }
+  .mini:hover { background: var(--card); border-color: transparent; transform: translateY(-1px); }
+  .mini .tile {
+    flex: none;
+    width: 3.1rem;
+    height: 3.1rem;
+    border-radius: 7px;
+    overflow: hidden;
+    background: var(--chip);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+  }
+  .mini .tile img { width: 100%; height: 100%; object-fit: cover; display: block; }
+  .mini .tile img.fit-top { object-position: top center; }
+  .mini .glyph-svg { width: 1.35rem; height: 1.35rem; color: var(--fg-faint); }
+  .mini .mtext { min-width: 0; }
+  .mini h4 {
+    margin: 0 0 .1rem;
+    font-size: .92rem;
+    font-weight: 600;
+    letter-spacing: -.005em;
+    line-height: 1.35;
+  }
+  .mini p {
+    margin: 0;
+    font-size: .8rem;
+    line-height: 1.5;
+    color: var(--fg-muted);
+    display: -webkit-box;
+    -webkit-line-clamp: 1;
+    -webkit-box-orient: vertical;
+    overflow: hidden;
+  }
+  .mini .go {
+    flex: none;
+    margin-left: auto;
+    width: .95rem; height: .95rem;
+    color: var(--fg-faint);
+    opacity: 0;
+    transition: opacity .18s ease, transform .18s ease;
+  }
+  .mini:hover .go { opacity: 1; transform: translateX(2px); }
+
+  @media (max-width: 62rem) {
+    .feat-grid { grid-template-columns: 1fr 1fr; }
+    .feat { min-height: 22rem; }
+  }
+  @media (max-width: 40rem) {
+    .feat-grid { grid-template-columns: 1fr; }
+    .feat { min-height: 0; }
+    .mini-grid { grid-template-columns: 1fr; }
+  }
+</style>
+</head>
+<body>
+
+<nav>
+  <a href="#research">Research</a>
+  <a href="#engineering">Engineering</a>
+  <a href="#projects">Projects</a>
+  <a href="sub_sites/dissertation.html">Dissertation</a>
+  <a href="#about">About</a>
+  <a href="CV/CV_general.pdf">CV</a>
+  <a href="https://github.com/BenjaminPoole" aria-label="GitHub" title="GitHub">
+    <svg viewBox="0 0 16 16" fill="currentColor" aria-hidden="true"><path d="M8 0C3.58 0 0 3.58 0 8c0 3.54 2.29 6.53 5.47 7.59.4.07.55-.17.55-.38 0-.19-.01-.82-.01-1.49-2.01.37-2.53-.49-2.69-.94-.09-.23-.48-.94-.82-1.13-.28-.15-.68-.52-.01-.53.63-.01 1.08.58 1.23.82.72 1.21 1.87.87 2.33.66.07-.52.28-.87.51-1.07-1.78-.2-3.64-.89-3.64-3.95 0-.87.31-1.59.82-2.15-.08-.2-.36-1.02.08-2.12 0 0 .67-.21 2.2.82.64-.18 1.32-.27 2-.27s1.36.09 2 .27c1.53-1.04 2.2-.82 2.2-.82.44 1.1.16 1.92.08 2.12.51.56.82 1.27.82 2.15 0 3.07-1.87 3.75-3.65 3.95.29.25.54.73.54 1.48 0 1.07-.01 1.93-.01 2.2 0 .21.15.46.55.38A8.01 8.01 0 0 0 16 8c0-4.42-3.58-8-8-8Z"/></svg>
+  </a>
+  <button id="theme" aria-label="Toggle colour theme" title="Toggle colour theme">
+    <svg id="moon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M21 12.79A9 9 0 1 1 11.21 3 7 7 0 0 0 21 12.79Z"/></svg>
+    <svg id="sun" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><circle cx="12" cy="12" r="4.2"/><path d="M12 2v2M12 20v2M4.9 4.9l1.4 1.4M17.7 17.7l1.4 1.4M2 12h2M20 12h2M4.9 19.1l1.4-1.4M17.7 6.3l1.4-1.4"/></svg>
+  </button>
+</nav>
+
+<main>
+  <h1 class="col">Benjamin Poole</h1>
+
+  <div class="prose col">
+    <p class="lead">Hey! I&rsquo;m Benjamin Poole, a lifelong technology enthusiast and Google Scholarship recipient, specialising in Machine Learning and Informatics research.</p>
+
+    <dl class="facts">
+      <dt>Studying</dt>
+      <dd><span class="chip"><img class="logo" src="assets/icons/edinburgh.png" alt="University of Edinburgh logo" width="16" height="16" loading="lazy" decoding="async"><a href="https://www.ed.ac.uk/">MSc Artificial Intelligence, Edinburgh</a></span></dd>
+
+      <dt>Graduated</dt>
+      <dd><span class="chip"><img class="logo" src="assets/icons/southampton.png" alt="University of Southampton logo" width="16" height="16" loading="lazy" decoding="async"><a href="https://www.southampton.ac.uk/about/faculties-schools-departments/school-of-electronics-and-computer-science">BEng Computer Science, Southampton &mdash; First Class</a></span></dd>
+
+      <dt>Researched at</dt>
+      <dd>
+        <span class="chip"><img class="logo" src="assets/icons/tupel-3d.png" alt="Tupel 3D logo" width="16" height="16" loading="lazy" decoding="async"><a href="https://tupel3d.co.uk">Tupel 3D</a></span>
+        <span class="chip"><img class="logo" src="assets/icons/southampton.png" alt="University of Southampton logo" width="16" height="16" loading="lazy" decoding="async"><a href="https://www.southampton.ac.uk/research/groups/agents-interaction-complexity">Agents, Interaction &amp; Complexity</a></span>
+      </dd>
+
+      <dt>Engineered at</dt>
+      <dd><span class="chip"><img class="logo" src="assets/icons/britwind.png" alt="Britwind logo" width="16" height="16" loading="lazy" decoding="async"><a href="https://www.britwind.co.uk/">Britwind &mdash; Ecotricity</a></span></dd>
+
+      <dt>Awarded</dt>
+      <dd><span class="chip"><img class="logo" src="assets/icons/google.png" alt="Google logo" width="16" height="16" loading="lazy" decoding="async"><a href="https://blogs.cs.st-andrews.ac.uk/csblog/2023/03/29/google-europe-scholarship-for-students-with-disabilities">Google Europe Scholarship 2024</a></span></dd>
+
+      <dt>Interested in</dt>
+      <dd>
+        <span class="chip"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><circle cx="10.8" cy="10.8" r="5.9"/><path d="m15.2 15.2 4.4 4.4"/><path d="M8.4 10.8h4.8"/></svg>LLM interpretability</span>
+        <span class="chip"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><circle cx="12" cy="12" r="7.6"/><circle cx="12" cy="12" r="3.4"/><path d="M12 1.8v2.6M12 19.6v2.6M1.8 12h2.6M19.6 12h2.6"/></svg>Reinforcement learning</span>
+        <span class="chip"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M2.2 12S5.7 5.9 12 5.9 21.8 12 21.8 12 18.3 18.1 12 18.1 2.2 12 2.2 12Z"/><circle cx="12" cy="12" r="2.7"/></svg>Computer vision</span>
+        <span class="chip"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M9.3 5.4 3.6 12l5.7 6.6"/><path d="M14.7 5.4 20.4 12l-5.7 6.6"/></svg>Compilers</span>
+      </dd>
+    </dl>
+
+    <p>I graduated in Computer Science with First Class Honours and was awarded the
+    <a href="https://blogs.cs.st-andrews.ac.uk/csblog/2023/03/29/google-europe-scholarship-for-students-with-disabilities">Google Europe Scholarship</a>
+    (2024). Offered a funded PhD position at Southampton but am currently undertaking a Masters in Artificial
+    Intelligence at the University of Edinburgh to further develop my theoretical foundations.</p>
+  </div>
+
+  <section id="research">
+    <h2>Research experience</h2>
+
+    <ol class="roles">
+
+      <li class="role">
+        <div class="thumb fit-left"><img src="assets/projects/aic-robot-policy.webp" alt="Agents, Interaction and Complexity research group at the University of Southampton" loading="lazy" decoding="async"></div>
+        <div class="role-body">
+          <div class="meta">Mar &ndash; Sep 2024 &middot; Research</div>
+          <h3>Vision-language policy for robot agents</h3>
+          <p class="org">Researcher, <a href="https://www.southampton.ac.uk/research/groups/agents-interaction-complexity">Agents, Interaction and Complexity</a> &middot; University of Southampton</p>
+          <p>Research on controlling robot agents from natural language, supervised by a postgraduate researcher. I developed a novel approach building on MineCLIP
+          (<a href="https://arxiv.org/abs/2206.08853">arXiv:2206.08853</a>): a teacher model that trains a student policy through imitation learning.</p>
+          <p class="note">The group later offered me a funded PhD.</p>
+        </div>
+      </li>
+
+      <li class="role">
+        <div class="thumb"><img src="assets/projects/tupel-3d.webp" alt="The Tupel 3D structured-light scanner prototype with a scanned 3D print" loading="lazy" decoding="async"></div>
+        <div class="role-body">
+          <div class="meta">Oct 2022 &ndash; Aug 2023 &middot; Research</div>
+          <h3>Low-cost structured-light 3D scanner</h3>
+          <p class="org">Researcher, <a href="https://tupel3d.co.uk">Tupel 3D</a></p>
+          <p>Researched and prototyped a hand-held structured-light 3D scanner. I self-taught computer vision and SLAM from open lectures, then built a proprietary
+          depth-reconstruction AI that produced accurate 3D imagery from primitive hardware, alongside an ORB-SLAM&nbsp;3 style camera tracker
+          (<a href="https://arxiv.org/abs/2007.11898">arXiv:2007.11898</a>).</p>
+        </div>
+      </li>
+
+      <li class="role">
+        <div class="thumb"><img src="assets/projects/britwind-dashboard.webp"
+            alt="Britwind IoT dashboard: live gauges for power generation, windspeed, shaft speed, wind direction, volts and amps"
+            loading="lazy" decoding="async"></div>
+        <div class="role-body">
+          <div class="meta">Aug &ndash; Sep 2025 &middot; Engineering</div>
+          <h3>Turbine analytics dashboard</h3>
+          <p class="org">Software Engineer, <a href="https://www.britwind.co.uk/">Britwind</a> &middot; Ecotricity</p>
+          <p>A real-time IoT dashboard displaying customer wind turbine generation with full analytics and
+            customisation. Built in six weeks,
+            replacing a stalled contractor-dependent effort and saving significant development cost.</p>
+        </div>
+      </li>
+
+    </ol>
+  </section>
+
+  <section id="projects">
+      <h2>Featured projects</h2>
+
+      <div class="feat-grid">
+        <a class="feat phosphor" href="sub_sites/Ferranti-mark-I/index.html" target="_blank" rel="noopener">
+          <svg class="go" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M5 12h13"/><path d="m12.5 5.5 6.5 6.5-6.5 6.5"/></svg>
+          <div class="fmeta">2025–26 &middot; Emulator</div>
+          <div class="shot"><img src="assets/projects/ferranti-mark-1.webp" alt="Ferranti Mark 1 emulator: assembly source, teleprinter output and a live visualisation of the Williams-tube store" loading="lazy" decoding="async"></div>
+          <h3>Ferranti Mark I Emulator</h3>
+          <p>The 1951 machine emulated in the browser, with visualised Williams-tube store.</p>
+        </a>
+        <a class="feat violet" href="sub_sites/LLM%20from%20scratch.html" target="_blank" rel="noopener">
+          <svg class="go" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M5 12h13"/><path d="m12.5 5.5 6.5 6.5-6.5 6.5"/></svg>
+          <div class="fmeta">2024 &middot; Machine learning</div>
+          <div class="shot"><img src="assets/projects/head_12.webp" alt="Attention pattern of the first layer, head 12, of the trained language model" loading="lazy" decoding="async"></div>
+          <h3>An LLM from scratch</h3>
+          <p>An implementation and analysis of a 14.5M-parameter language model written from the matrix multiplications up.</p>
+        </a>
+        <a class="feat azure" href="sub_sites/SDEdit.html" target="_blank" rel="noopener">
+          <svg class="go" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M5 12h13"/><path d="m12.5 5.5 6.5 6.5-6.5 6.5"/></svg>
+          <div class="fmeta">2023 &middot; Machine learning</div>
+          <div class="shot contain"><img src="assets/projects/sdedit.webp" alt="SDEdit results: flat painted sketches on top, photorealistic faces and churches synthesised below" loading="lazy" decoding="async"></div>
+          <h3>Sketch to photograph with SDEdit</h3>
+          <p>Stable Diffusion turned into a sketch renderer, with no retraining at all.</p>
+        </a>
+      </div>
+
+      <div class="more-head"><h3>More projects</h3></div>
+      <div class="mini-grid">
+        <a class="mini" href="sub_sites/parakeet-transcriber.html" target="_blank" rel="noopener">
+          <span class="tile"><img src="assets/projects/parakeet-transcriber.webp" alt="" loading="lazy" decoding="async"></span>
+          <span class="mtext">
+            <h4>Browser-native speech transcriber</h4>
+            <p>Parakeet TDT 0.6B, running entirely in the browser.</p>
+          </span>
+          <svg class="go" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M5 12h13"/><path d="m12.5 5.5 6.5 6.5-6.5 6.5"/></svg>
+        </a>
+        <a class="mini" href="https://benjaminpoole.github.io/ecumenical-christian-library/" target="_blank" rel="noopener">
+          <span class="tile"><img class="fit-top" src="assets/projects/christian-library.webp" alt="" loading="lazy" decoding="async"></span>
+          <span class="mtext">
+            <h4>Ecumenical Christian Library</h4>
+            <p>A searchable digital library of over 17,000 texts.</p>
+          </span>
+          <svg class="go" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M5 12h13"/><path d="m12.5 5.5 6.5 6.5-6.5 6.5"/></svg>
+        </a>
+        <a class="mini" href="#">
+          <span class="tile"><svg class="glyph-svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M9.5 4C7.8 4 7.5 5 7.5 6.6v2.2c0 1.5-.7 2.4-2.2 2.4h-.8"/><path d="M9.5 20c-1.7 0-2-1-2-2.6v-2.2c0-1.5-.7-2.4-2.2-2.4h-.8"/><path d="M14.5 4c1.7 0 2 1 2 2.6v2.2c0 1.5.7 2.4 2.2 2.4h.8"/><path d="M14.5 20c1.7 0 2-1 2-2.6v-2.2c0-1.5.7-2.4 2.2-2.4h.8"/></svg></span>
+          <span class="mtext">
+            <h4>Compiler for a C-like language</h4>
+            <p>Lexer, parser and code generator, front to back.</p>
+          </span>
+          <svg class="go" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M5 12h13"/><path d="m12.5 5.5 6.5 6.5-6.5 6.5"/></svg>
+        </a>
+        <a class="mini" href="https://github.com/BenjaminPoole/Fast-Mandelbrot" target="_blank" rel="noopener">
+          <span class="tile"><img src="assets/projects/mandelbrot.webp" alt="" loading="lazy" decoding="async"></span>
+          <span class="mtext">
+            <h4>Fast Mandelbrot renderer</h4>
+            <p>A GPU-accelerated set explorer built for speed.</p>
+          </span>
+          <svg class="go" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M5 12h13"/><path d="m12.5 5.5 6.5 6.5-6.5 6.5"/></svg>
+        </a>
+        <a class="mini" href="#">
+          <span class="tile"><img src="assets/projects/tesla-coil.webp" alt="" loading="lazy" decoding="async"></span>
+          <span class="mtext">
+            <h4>Solid-state Tesla coil</h4>
+            <p>A homebrew SSTC running off 30V, reaching 60kV.</p>
+          </span>
+          <svg class="go" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M5 12h13"/><path d="m12.5 5.5 6.5 6.5-6.5 6.5"/></svg>
+        </a>
+      </div>
+
+  </section>
+
+  <section id="about" class="prose col">
+
+    <h2 style="margin-top:2.6rem">Let&apos;s connect</h2>
+    <p>Graduating and seeking full-time roles from September 2027</p>
+    <div class="links">
+      <a href="https://github.com/BenjaminPoole">
+        <svg viewBox="0 0 16 16" fill="currentColor" aria-hidden="true"><path d="M8 0C3.58 0 0 3.58 0 8c0 3.54 2.29 6.53 5.47 7.59.4.07.55-.17.55-.38 0-.19-.01-.82-.01-1.49-2.01.37-2.53-.49-2.69-.94-.09-.23-.48-.94-.82-1.13-.28-.15-.68-.52-.01-.53.63-.01 1.08.58 1.23.82.72 1.21 1.87.87 2.33.66.07-.52.28-.87.51-1.07-1.78-.2-3.64-.89-3.64-3.95 0-.87.31-1.59.82-2.15-.08-.2-.36-1.02.08-2.12 0 0 .67-.21 2.2.82.64-.18 1.32-.27 2-.27s1.36.09 2 .27c1.53-1.04 2.2-.82 2.2-.82.44 1.1.16 1.92.08 2.12.51.56.82 1.27.82 2.15 0 3.07-1.87 3.75-3.65 3.95.29.25.54.73.54 1.48 0 1.07-.01 1.93-.01 2.2 0 .21.15.46.55.38A8.01 8.01 0 0 0 16 8c0-4.42-3.58-8-8-8Z"/></svg>
+        GitHub
+      </a>
+      <a href="https://benjaminpoole.github.io/">Website</a>
+      <a href="CV/CV_general.pdf">CV</a>
+    </div>
+    <p class="muted" id="email-line">Or <button type="button" id="email-reveal" class="linkish">show my email</button>
+      <noscript>mail me at <code>benjpoole01 [at] gmail [dot] com</code></noscript></p>
+  </section>
+
+  <footer class="col">&copy; 2026 Benjamin Poole</footer>
+</main>
+
+<script>
+  (function () {
+    // Email is never present as a literal string in the HTML; it is assembled
+    // from base64 pieces on click so naive scrapers can't harvest it.
+    var btn = document.getElementById('email-reveal');
+    if (!btn) return;
+    btn.addEventListener('click', function () {
+      var addr = atob('YmVuanBvb2xlMDE=') + '@' + atob('Z21haWwuY29t');
+      var a = document.createElement('a');
+      a.href = 'mailto:' + addr;
+      a.textContent = addr;
+      var line = document.getElementById('email-line');
+      line.textContent = 'Or mail me at ';
+      line.appendChild(a);
+    });
+  })();
+  (function () {
+    var root = document.documentElement;
+    try {
+      var saved = localStorage.getItem('theme-v2');
+      if (saved) root.setAttribute('data-theme', saved);
+    } catch (e) {}
+
+    document.getElementById('theme').addEventListener('click', function () {
+      var current = root.getAttribute('data-theme') || 'dark';
+      var next = current === 'dark' ? 'light' : 'dark';
+      root.setAttribute('data-theme', next);
+      try { localStorage.setItem('theme-v2', next); } catch (e) {}
+    });
+
+    // Prototype: cards are not wired to their repositories yet.
+    document.querySelectorAll('a[href="#"]').forEach(function (a) {
+      a.addEventListener('click', function (e) { e.preventDefault(); });
+    });
+  })();
+</script>
+</body>
+</html>

@@ -1,0 +1,650 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>SDEdit: Guided Image Synthesis</title>
+<meta name="description" content="Benjamin Poole's working notes on SDEdit: guided image synthesis with a pretrained diffusion model, no retraining.">
+<style>
+:root{--bg:#fff;--fg:#1a1a1a;--fg-muted:#5f5f5f;--fg-faint:#949494;--rule:#e6e6e6;
+--card:#fafafa;--chip:#f2f2f2;--accent:#1a1a1a;--link:#1a1a1a;--mark:#f0efe9;
+--measure:44rem;--shadow:0 1px 2px rgba(0,0,0,.04),0 8px 24px rgba(0,0,0,.06);}
+:root[data-theme="dark"]{--bg:#0d0d0e;--fg:#e6e6e6;--fg-muted:#9b9b9b;--fg-faint:#6a6a6a;
+--rule:#262628;--card:#161618;--chip:#1e1e21;--accent:#fff;--link:#fff;--mark:#1e1e21;
+--shadow:0 1px 2px rgba(0,0,0,.4),0 8px 24px rgba(0,0,0,.35);}
+@media (prefers-color-scheme:dark){:root:not([data-theme="light"]){--bg:#0d0d0e;--fg:#e6e6e6;
+--fg-muted:#9b9b9b;--fg-faint:#6a6a6a;--rule:#262628;--card:#161618;--chip:#1e1e21;
+--accent:#fff;--link:#fff;--mark:#1e1e21;
+--shadow:0 1px 2px rgba(0,0,0,.4),0 8px 24px rgba(0,0,0,.35);}}
+
+*{box-sizing:border-box}
+body{margin:0;background:var(--bg);color:var(--fg);overflow-wrap:break-word;
+font-family:-apple-system,BlinkMacSystemFont,"Segoe UI",Inter,Roboto,Helvetica,Arial,sans-serif;
+font-size:16px;line-height:1.75;-webkit-font-smoothing:antialiased;}
+a{color:inherit}
+p a,li a,figcaption a{text-decoration:none;border-bottom:1px solid var(--rule);transition:border-color .15s}
+p a:hover,li a:hover,figcaption a:hover{border-bottom-color:var(--accent)}
+
+/* progress + nav */
+#prog{position:fixed;top:0;left:0;height:2px;background:var(--fg);width:0;z-index:30}
+nav{position:fixed;top:0;left:0;right:0;display:flex;justify-content:flex-end;align-items:center;
+gap:1.3rem;padding:1rem 1.5rem;font-size:.92rem;z-index:20;
+background:linear-gradient(to bottom,var(--bg) 60%,transparent)}
+nav a,nav button{color:var(--fg-muted);text-decoration:none;background:none;border:0;padding:0;
+font:inherit;cursor:pointer;display:inline-flex;align-items:center;transition:color .15s}
+nav a:hover,nav button:hover{color:var(--fg)}
+nav svg{width:17px;height:17px;display:block}
+#sun{display:none}
+:root[data-theme="dark"] #sun{display:block}
+:root[data-theme="dark"] #moon{display:none}
+@media (prefers-color-scheme:dark){:root:not([data-theme="light"]) #sun{display:block}
+:root:not([data-theme="light"]) #moon{display:none}}
+
+.wrap{max-width:74rem;margin:0 auto;padding:5.5rem 1.5rem 6rem;display:grid;
+grid-template-columns:15rem minmax(0,1fr);gap:3rem;align-items:start}
+article{max-width:var(--measure);min-width:0}
+
+/* sidebar toc */
+aside{position:sticky;top:5rem;max-height:calc(100vh - 8rem);overflow-y:auto;
+font-size:.83rem;line-height:1.5;padding-right:.5rem}
+aside h4{margin:0 0 .7rem;font-size:.72rem;letter-spacing:.09em;text-transform:uppercase;
+color:var(--fg-faint);font-weight:600}
+.toc-list{list-style:none;margin:0;padding:0}
+.toc-list li{margin:.12rem 0}
+.toc-list a{display:block;color:var(--fg-muted);text-decoration:none;padding:.12rem 0 .12rem .5rem;
+border-left:2px solid transparent;transition:color .15s,border-color .15s}
+.toc-list a:hover{color:var(--fg)}
+.toc-list a.active{color:var(--fg);border-left-color:var(--fg)}
+.toc-list .n{color:var(--fg-faint);margin-right:.45rem;font-variant-numeric:tabular-nums}
+.toc-l3 a{padding-left:1.1rem}
+.toc-l4 a{padding-left:1.9rem;font-size:.95em}
+aside::-webkit-scrollbar{width:6px}
+aside::-webkit-scrollbar-thumb{background:var(--rule);border-radius:3px}
+
+/* title block */
+.back{font-size:.9rem;color:var(--fg-muted);text-decoration:none;display:inline-block;margin-bottom:1.6rem}
+.back:hover{color:var(--fg)}
+h1{font-size:2.05rem;font-weight:700;letter-spacing:-.02em;line-height:1.25;margin:0 0 .9rem}
+.byline{font-size:1rem;margin:0 0 1.4rem;color:var(--fg)}
+.meta{display:grid;grid-template-columns:auto 1fr;gap:.25rem 1rem;font-size:.9rem;
+color:var(--fg-muted);margin:0 0 2.2rem;padding-bottom:2rem;border-bottom:1px solid var(--rule)}
+.meta dt{color:var(--fg-faint)}
+.meta dd{margin:0}
+.abstract{background:var(--card);border:1px solid var(--rule);border-radius:12px;
+padding:1.4rem 1.5rem;margin:0 0 2.5rem}
+.abstract h2{margin:0 0 .7rem;font-size:.75rem;letter-spacing:.09em;text-transform:uppercase;
+color:var(--fg-faint);font-weight:600;border:0;padding:0}
+.abstract p{margin:0 0 .9rem;font-size:.95rem}
+.abstract p:last-child{margin-bottom:0}
+
+/* headings */
+h2,h3,h4,h5{line-height:1.3;letter-spacing:-.01em;scroll-margin-top:5rem}
+h2{font-size:1.65rem;font-weight:700;margin:3.6rem 0 1.2rem;padding-bottom:.5rem;
+border-bottom:1px solid var(--rule)}
+h3{font-size:1.2rem;font-weight:650;margin:2.6rem 0 .9rem}
+h4{font-size:1.02rem;font-weight:650;margin:2rem 0 .7rem}
+h5{font-size:.95rem;font-weight:650;margin:1.6rem 0 .6rem;color:var(--fg-muted)}
+.secnum{color:var(--fg-faint);font-weight:500;margin-right:.6rem;font-variant-numeric:tabular-nums}
+/* chapter numbers read as part of the title: "2. Related Work" */
+h2 .secnum{color:inherit;font-weight:inherit;font-size:inherit;letter-spacing:inherit;
+margin-right:.45rem}
+h2 .secnum::after{content:"."}
+
+p{margin:0 0 1.2rem}
+strong{font-weight:650}
+code{font-family:ui-monospace,SFMono-Regular,"SF Mono",Menlo,Consolas,monospace;
+font-size:.87em;background:var(--chip);padding:.06em .22em;border-radius:4px;
+word-break:break-word}
+.math{font-family:Georgia,"Times New Roman",serif;font-style:italic}
+.math sub,.math sup{font-style:normal}
+
+/* lists */
+ul,ol{margin:0 0 1.2rem;padding-left:1.3rem}
+li{margin:.4rem 0}
+li p{margin:0 0 .5rem}
+li p:last-child{margin-bottom:0}
+ol.marked-list,ul.marked-list{list-style:none;padding-left:0}
+li.marked{display:flex;gap:.7rem;align-items:baseline}
+.li-mark{color:var(--fg-faint);flex:0 0 auto;font-variant-numeric:tabular-nums}
+
+/* links */
+.cite{white-space:nowrap;color:var(--fg-muted)}
+.xref{font-variant-numeric:tabular-nums}
+.url{word-break:break-all;font-size:.93em}
+
+/* figures */
+.fig{margin:2.4rem 0;padding:0}
+.fig .shot{display:block;background:#fff;border:1px solid var(--rule);border-radius:10px;
+overflow:hidden;padding:.5rem;transition:box-shadow .2s,border-color .2s}
+.fig .shot:hover{box-shadow:var(--shadow);border-color:transparent}
+.fig img{display:block;width:100%;height:auto;border-radius:4px}
+.fig .tall img{max-height:78vh;width:auto;max-width:100%;margin:0 auto}
+figcaption{font-size:.85rem;line-height:1.6;color:var(--fg-muted);margin-top:.7rem}
+.fignum{color:var(--fg);font-weight:600}
+.fig-missing{background:var(--chip);border:1px dashed var(--rule);border-radius:10px;
+padding:2rem;text-align:center;color:var(--fg-faint);font-size:.9rem}
+
+/* code blocks + collapsibles */
+pre.diff,pre.verb-pre{background:var(--card);border:1px solid var(--rule);border-radius:10px;
+padding:1rem 1.1rem;overflow-x:auto;font-size:.8rem;line-height:1.55;margin:1.4rem 0;
+font-family:ui-monospace,SFMono-Regular,"SF Mono",Menlo,Consolas,monospace;white-space:pre}
+details.verb{border:1px solid var(--rule);border-radius:10px;margin:1.2rem 0;background:var(--card)}
+details.verb summary{cursor:pointer;padding:.75rem 1rem;font-size:.9rem;font-weight:550;
+display:flex;justify-content:space-between;align-items:center;gap:1rem;list-style:none}
+details.verb summary::-webkit-details-marker{display:none}
+details.verb summary::before{content:"▸";color:var(--fg-faint);margin-right:.5rem;
+display:inline-block;transition:transform .15s}
+details.verb[open] summary::before{transform:rotate(90deg)}
+details.verb summary:hover{color:var(--fg)}
+.verb-meta{color:var(--fg-faint);font-size:.78rem;font-weight:400;white-space:nowrap}
+details.verb pre.verb-pre{margin:0;border:0;border-top:1px solid var(--rule);
+border-radius:0 0 10px 10px;max-height:34rem;overflow:auto;white-space:pre-wrap}
+
+/* bibliography */
+#bibliography+ol{list-style:none;padding:0;counter-reset:b;font-size:.9rem}
+#bibliography+ol li{counter-increment:b;position:relative;padding-left:2.2rem;margin:.85rem 0;
+line-height:1.6;color:var(--fg-muted);scroll-margin-top:5rem}
+#bibliography+ol li::before{content:"[" counter(b) "]";position:absolute;left:0;
+color:var(--fg-faint);font-variant-numeric:tabular-nums}
+#bibliography+ol li:target{background:var(--mark);border-radius:6px;
+padding-top:.4rem;padding-bottom:.4rem}
+.bib-t{color:var(--fg)}
+.bib-u{word-break:break-all;font-size:.93em}
+
+footer{margin-top:4rem;padding-top:1.5rem;border-top:1px solid var(--rule);
+font-size:.85rem;color:var(--fg-faint)}
+
+@media (max-width:960px){
+  .wrap{grid-template-columns:1fr;gap:0;padding-top:5rem}
+  aside{position:static;max-height:none;margin-bottom:2.5rem;padding:1rem 1.1rem;
+    background:var(--card);border:1px solid var(--rule);border-radius:12px;overflow:visible}
+  aside .toc-list{max-height:17rem;overflow-y:auto}
+  article{max-width:none}
+}
+@media (max-width:640px){
+  .wrap{padding:4.5rem 1.1rem 4rem}
+  h1{font-size:1.7rem}
+  h2{font-size:1.35rem}
+  .meta{grid-template-columns:1fr;gap:0}
+  .meta dt{margin-top:.5rem;font-size:.82rem}
+  nav{gap:1.05rem;padding:.9rem 1.1rem}
+}
+
+/* notes pages: figure grids, labels, callouts, tables */
+.figrow{display:grid;gap:.8rem;margin:2.4rem 0}
+.figrow.two{grid-template-columns:repeat(2,minmax(0,1fr))}
+.figrow.three{grid-template-columns:repeat(3,minmax(0,1fr))}
+.figrow .shot{margin:0}
+.figrow figcaption{margin-top:.55rem}
+.fig .shot.natural img{width:auto;max-width:100%;margin:0 auto}
+.collab{font-size:.8rem;color:var(--fg-faint);margin-top:.35rem}
+.note-warn{font-size:.85rem;color:var(--fg-muted);border-left:2px solid var(--rule);
+padding:.15rem 0 .15rem .8rem;margin:1.4rem 0}
+.aside-note{color:var(--fg-muted);font-size:.93rem}
+table{border-collapse:collapse;width:100%;font-size:.82rem;margin:1.2rem 0;
+font-variant-numeric:tabular-nums}
+th,td{border:1px solid var(--rule);padding:.3rem .6rem;text-align:left}
+th{font-weight:600;color:var(--fg-muted);font-size:.78rem;letter-spacing:.03em;
+text-transform:uppercase}
+.tbl-scroll{overflow-x:auto}
+details.verb .tbl-scroll{padding:0 1rem 1rem;max-height:30rem;overflow:auto}
+@media (max-width:640px){.figrow.three{grid-template-columns:1fr}}
+</style>
+</head>
+<body>
+<div id="prog"></div>
+<nav>
+  <a href="../index.html">Home</a>
+  <a href="https://github.com/BenjaminPoole" aria-label="GitHub" title="GitHub"><svg viewBox='0 0 16 16' fill='currentColor' aria-hidden='true'><path d='M8 0C3.58 0 0 3.58 0 8c0 3.54 2.29 6.53 5.47 7.59.4.07.55-.17.55-.38 0-.19-.01-.82-.01-1.49-2.01.37-2.53-.49-2.69-.94-.09-.23-.48-.94-.82-1.13-.28-.15-.68-.52-.01-.53.63-.01 1.08.58 1.23.82.72 1.21 1.87.87 2.33.66.07-.52.28-.87.51-1.07-1.78-.2-3.64-.89-3.64-3.95 0-.87.31-1.59.82-2.15-.08-.2-.36-1.02.08-2.12 0 0 .67-.21 2.2.82.64-.18 1.32-.27 2-.27s1.36.09 2 .27c1.53-1.04 2.2-.82 2.2-.82.44 1.1.16 1.92.08 2.12.51.56.82 1.27.82 2.15 0 3.07-1.87 3.75-3.65 3.95.29.25.54.73.54 1.48 0 1.07-.01 1.93-.01 2.2 0 .21.15.46.55.38A8.01 8.01 0 0 0 16 8c0-4.42-3.58-8-8-8Z'/></svg></a>
+  <button id="theme" aria-label="Toggle colour theme" title="Toggle colour theme">
+    <svg id="moon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round"><path d="M21 12.79A9 9 0 1 1 11.21 3 7 7 0 0 0 21 12.79Z"/></svg>
+    <svg id="sun" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="4.2"/><path d="M12 2v2M12 20v2M4.9 4.9l1.4 1.4M17.7 17.7l1.4 1.4M2 12h2M20 12h2M4.9 19.1l1.4-1.4M17.7 6.3l1.4-1.4"/></svg>
+  </button>
+</nav>
+
+<div class="wrap">
+<aside>
+  <h4>Contents</h4>
+  <ul class='toc-list'><li class='toc-l2'><a href='#sec:generation'><span class=n>1</span>The intuition</a></li><li class='toc-l2'><a href='#sec:paper'><span class=n>2</span>SDEdit paper</a></li><li class='toc-l2'><a href='#sec:vae'><span class=n>3</span>VAE performance</a></li><li class='toc-l2'><a href='#sec:input-size'><span class=n>4</span>Changing input size</a></li><li class='toc-l3'><a href='#sec:noise-scale'>Trying to scale the amount of noise to compensate</a></li><li class='toc-l2'><a href='#sec:guide-strength'><span class=n>5</span>Varying strength of guide image</a></li><li class='toc-l2'><a href='#sec:search-2d'><span class=n>6</span>Searching over t0 and guidance scale</a></li><li class='toc-l2'><a href='#sec:search-iterations'><span class=n>7</span>Searching over iterations</a></li><li class='toc-l2'><a href='#sec:many-guides'><span class=n>8</span>Running over lots of different guides</a></li><li class='toc-l2'><a href='#sec:conclusion'><span class=n>9</span>Conclusion</a></li><li class='toc-l3'><a href='#sec:improvements'>Improvements</a></li></ul>
+</aside>
+
+<article>
+  <a class="back" href="../index.html">&larr; Benjamin Poole</a>
+  <h1>SDEdit: Guided Image Synthesis</h1>
+  <p class="byline">Turning a paint sketch into a photograph with a frozen diffusion model</p>
+  <dl class="meta">
+    <dt>Author</dt><dd>Benjamin Poole</dd>
+    <dt>Date</dt><dd>December 2023</dd>
+    <dt>Built on</dt><dd>Stable Diffusion, no retraining
+    (<a href="https://arxiv.org/abs/2108.01073">arXiv:2108.01073</a>)</dd>
+  </dl>
+
+  <div class="abstract">
+    <h2>Note</h2>
+    <div class='abstract-body'><p>These are my working notes from implementing SDEdit on top of Stable
+    Diffusion: what the method is, what I got out of it, and what did not work. The first figure is a slide
+    from <a href="https://youtu.be/sAQzhw6dleU?si=VJQa1Ud_QsRmFQXD">this talk</a>; everything from the
+    <a href="#sec:paper">SDEdit paper</a> section on is my own experiments.</p></div>
+  </div>
+
+  <h2 id="sec:generation"><span class="secnum">1</span>The intuition</h2>
+
+  <figure class="fig">
+    <span class="shot"><img src="../assets/sdedit/talk-intuition.webp" alt="Slide 'The Intuition': stroke paintings and real images sit in distant distributions, but after adding noise the two blurred distributions overlap, so the frozen model can denoise from one to the other"></span>
+  </figure>
+
+  <p>It is hard to go from stroke painting to real image. The distribution is far away, e.g. a stroke painting
+  is smooth and a real image has high frequency detail.</p>
+
+  <p>When we noise them the distributions are closer together. We have made it easier for the model to reverse
+  this diffusion process and go from noise to detail.</p>
+
+  <h2 id="sec:paper"><span class="secnum">2</span>SDEdit paper</h2>
+
+  <p class="aside-note">(figures from <a href="https://arxiv.org/abs/2108.01073">arXiv:2108.01073</a>)</p>
+
+  <p>We assume no dataset mapping from guides to real images like GAN based approaches.</p>
+  <ul>
+    <li>Not like a segmentation problem either, the image does not have colour &ndash; class labels.</li>
+    <li>We are so general purpose we can just put an image in and move towards a realistic image.</li>
+  </ul>
+
+  <p>So how do we solve the problem?</p>
+  <ul>
+    <li>If we understand images well enough like a human (general purpose model) we can put the drawn image
+    into the model and it would know how to move it towards a real image.</li>
+    <li>Diffusion models surpass GAN limitations so we can make massive general purpose models.</li>
+    <li>We just control sampling with the guide, and the general purpose diffusion model moves it in the
+    direction of a real image.</li>
+  </ul>
+
+  <figure class="fig">
+    <span class="shot"><img src="../assets/sdedit/paper-guide-quality.webp" alt="Paper figure 8: four crude guides of faces and landscapes on the top row, with SDEdit's photorealistic outputs beneath them" loading="lazy" decoding="async"></span>
+    <figcaption><span class="fignum">Figure 8.</span> Analysis on the quality of user guide for stroke-based
+    image synthesis. Because we are moving in the direction of a general real image in accordance with the
+    learned distribution, we are resistant to outlier input.</figcaption>
+  </figure>
+
+  <figure class="fig">
+    <span class="shot"><img src="../assets/sdedit/paper-t0-sweet-spot.webp" alt="Paper figure: KID and squared L2 norm plotted against t0 with a sweet spot in the middle, beside a strip of bedroom images synthesised at t0 from 0 to 1, running from faithful to realistic" loading="lazy" decoding="async"></span>
+    <figcaption>The trade-off in one picture: at low <span class="math">t<sub>0</sub></span> the output is
+    faithful to the guide, at high <span class="math">t<sub>0</sub></span> it is realistic but no longer the
+    picture you drew.</figcaption>
+  </figure>
+
+  <figure class="fig">
+    <span class="shot"><img src="../assets/sdedit/paper-t0-sweep.webp" alt="Paper figure 12: a guide photograph of a house beside twelve generated versions at t0 from 0 to 0.9, becoming progressively more realistic and less like the guide" loading="lazy" decoding="async"></span>
+    <figcaption><span class="fignum">Figure 12.</span> Extra analysis on <span class="math">t<sub>0</sub></span>.
+    As it increases, the generated images become more realistic while less faithful.</figcaption>
+  </figure>
+
+  <p>We need to control the diffusion timestep to control the extent of diffusion guiding. More noise steps
+  mean the model has less guiding to the input image but more DOF (easier) to create a realistic image matching
+  the learned data distribution.</p>
+  <ul>
+    <li>Key hyperparameter is therefore <span class="math">t<sub>0</sub></span></li>
+    <li>We want to start at maybe between 30&ndash;60% of the way</li>
+    <li>We can just use the standard scheduler and an <em>if &rarr; continue</em> statement to get there.</li>
+  </ul>
+
+  <p>If the guide is far from any realistic image we must tolerate deviation.</p>
+
+  <figure class="fig">
+    <span class="shot"><img src="../assets/sdedit/paper-gan-comparison.webp" alt="Paper figure 4: bedroom guides compared across StyleGAN2-ADA, two in-domain baselines, e4e and SDEdit, with SDEdit keeping the layout of the guide while looking photographic" loading="lazy" decoding="async"></span>
+    <figcaption><span class="fignum">Figure 4.</span> SDEdit generates more realistic and faithful images than
+    state-of-the-art GAN-based models on stroke-based generation (LSUN bedroom).</figcaption>
+  </figure>
+
+  <h2 id="sec:vae"><span class="secnum">3</span>VAE performance</h2>
+
+  <p>It&rsquo;s important to make sure our VAE is good since we are inputting the guide in latent space. We
+  want to know that the model is receiving a meaningful latent representation of the guide, otherwise that will
+  adversely affect performance.</p>
+
+  <div class="figrow three">
+    <figure class="fig" style="margin:0">
+      <span class="shot"><img src="../assets/sdedit/guide-sketch.webp" alt="The flat painted guide: a blue sky, dark headland, pink shoreline, green field and a tower, all in blocks of solid colour" loading="lazy" decoding="async"></span>
+      <figcaption>Input</figcaption>
+    </figure>
+    <figure class="fig" style="margin:0">
+      <span class="shot"><img src="../assets/sdedit/vae-output.webp" alt="The same painted guide after a full encode-decode pass through the VAE, visually identical" loading="lazy" decoding="async"></span>
+      <figcaption>Output</figcaption>
+    </figure>
+    <figure class="fig" style="margin:0">
+      <span class="shot"><img src="../assets/sdedit/vae-difference.webp" alt="The difference between input and output multiplied by 31.3, showing faint edge outlines in false colour" loading="lazy" decoding="async"></span>
+      <figcaption>(output &minus; input) &times; 31.3</figcaption>
+    </figure>
+  </div>
+
+  <p>Above we do an end-to-end forward pass of the VAE and you can see from 512 to 64 it reproduces
+  faithfully.</p>
+
+  <figure class="fig">
+    <span class="shot"><span class="tall"><img src="../assets/sdedit/vae-latent.webp" alt="Normalized view of the 64x64 VAE latent, a washed-out low resolution version of the guide image" loading="lazy" decoding="async"></span></span>
+    <figcaption>Normalized view of VAE latent space (64&times;64). It looks like it&rsquo;s just been
+    downsampled? Maybe that&rsquo;s the best way for the autoencoder to represent it.</figcaption>
+  </figure>
+
+  <p>When doing an encode pass of the VAE, the output does change a bit due to sampling from the normal
+  distribution <span class="math">N(&mu;, &sigma;)</span> (used to regularize output) but it doesn&rsquo;t
+  change very much as shown below:</p>
+
+  <div class="figrow three">
+    <figure class="fig" style="margin:0">
+      <span class="shot"><img src="../assets/sdedit/vae-latent-sample-1.webp" alt="Notebook screenshot of one sampled latent rendered as coloured noise" loading="lazy" decoding="async"></span>
+    </figure>
+    <figure class="fig" style="margin:0">
+      <span class="shot"><img src="../assets/sdedit/vae-latent-sample-2.webp" alt="Notebook screenshot of a second sampled latent, near identical to the first" loading="lazy" decoding="async"></span>
+    </figure>
+    <figure class="fig" style="margin:0">
+      <span class="shot"><img src="../assets/sdedit/vae-latent-sample-3.webp" alt="Notebook screenshot of a third sampled latent, again near identical" loading="lazy" decoding="async"></span>
+    </figure>
+  </div>
+
+  <h2 id="sec:input-size"><span class="secnum">4</span>Changing input size</h2>
+
+  <p>What happens when we change the size of the input? All of these are with 100 iterations, the same prompt
+  (&ldquo;a photograph of an astronaut riding a horse&rdquo;) and the same latent noise vector.</p>
+
+  <div class="figrow three">
+    <figure class="fig" style="margin:0">
+      <span class="shot"><img src="../assets/sdedit/size-512.webp" alt="A clean photorealistic image of an astronaut riding a horse, generated at 512x512" loading="lazy" decoding="async"></span>
+      <figcaption>512&times;512 (default)</figcaption>
+    </figure>
+    <figure class="fig" style="margin:0">
+      <span class="shot natural"><img src="../assets/sdedit/size-256.webp" alt="The same prompt at 256x256: a garish, posterised horse and rider with broken detail" loading="lazy" decoding="async"></span>
+      <figcaption>256&times;256</figcaption>
+    </figure>
+    <figure class="fig" style="margin:0">
+      <span class="shot natural"><img src="../assets/sdedit/size-128.webp" alt="The same prompt at 128x128: coloured blocks with no recognisable subject" loading="lazy" decoding="async"></span>
+      <figcaption>128&times;128</figcaption>
+    </figure>
+  </div>
+
+  <p>The problem with training at low resolution and then training the final model on high resolution is that
+  images at high resolution contain a lot of redundant information but images at low resolution do not. This is
+  demonstrated in the figure below.</p>
+  <ul>
+    <li>For the same amount of noise, a low resolution image will be corrupted much more than a high resolution
+    image.</li>
+    <li>We therefore need to scale the amount of noise by image resolution.</li>
+  </ul>
+
+  <figure class="fig">
+    <span class="shot"><img src="../assets/sdedit/noise-vs-resolution.webp" alt="A butterfly photograph shown clean, then noised at t=500 at size 512 where it is still recognisable, then noised at t=500 at size 64 where it is destroyed" loading="lazy" decoding="async"></span>
+    <figcaption>Comparing the effect of adding noise to images of different sizes. From
+    <em>Hands-On Generative AI with Transformers and Diffusion Models</em>.</figcaption>
+  </figure>
+
+  <h3 id="sec:noise-scale">Trying to scale the amount of noise to compensate</h3>
+
+  <div class="figrow two">
+    <figure class="fig" style="margin:0">
+      <span class="shot natural"><img src="../assets/sdedit/size-128-noise-4.webp" alt="128x128 output with the noise divided by four: a dark blue field with a pale blob" loading="lazy" decoding="async"></span>
+      <figcaption>128&times;128, noise / 4</figcaption>
+    </figure>
+    <figure class="fig" style="margin:0">
+      <span class="shot natural"><img src="../assets/sdedit/size-128-noise-16.webp" alt="128x128 output with the noise divided by sixteen: two flat blocks of dark grey and pale green" loading="lazy" decoding="async"></span>
+      <figcaption>128&times;128, noise / 16</figcaption>
+    </figure>
+  </div>
+
+  <p>Same conditions as above. Neither of these worked well. Part of it is probably that the conditioning
+  information needs to be scaled as well. Also the diffuser might need to be retrained given the scale spaces
+  are different and so the CNN layers need to be different &mdash; if we re-trained, this would solve these
+  issues.</p>
+
+  <h2 id="sec:guide-strength"><span class="secnum">5</span>Varying strength of guide image</h2>
+
+  <p>We have two hyperparameters here.</p>
+
+  <h4><span class="math">t<sub>0</sub></span></h4>
+  <ul>
+    <li>This controls the noise added to the guide and how many iterations we do (as we have to remove the
+    noise we added). Horrible 2 variable control with 1 parameter.
+      <ul>
+        <li>If we add more noise we take more steps to remove it.</li>
+        <li>If we add less noise we take less steps. The diffuser has less DOF so it doesn&rsquo;t make sense
+        to make it take more steps.</li>
+        <li>Hence why this idea doesn&rsquo;t work: we could make it so we do the same number of iterations,
+        and the scheduler has to make the diffuser take bigger steps (timestep conditioning).</li>
+      </ul>
+    </li>
+  </ul>
+
+  <h4>Guide scalar</h4>
+  <ul>
+    <li>Controls the strength of the guide latent image.</li>
+    <li>In the paper, for each pixel (x, y) they use
+    <span class="math">N(0, 1) &times; scheduler_variance(t<sub>0</sub>) + guide</span>.</li>
+    <li>As it is unspecified in the paper I assume <span class="math">guide ~ Z(0, 1)</span>.</li>
+    <li>So given the table above we want to give the guide the appropriate scale for the model.</li>
+    <li>When increasing the number of iterations as shown below, std follows the same pattern, so I think we
+    will be ok for varying num iterations and the output staying consistent.</li>
+  </ul>
+
+  <p>So if you take less steps (e.g. t = 0.8) the guidance has more weight, but isn&rsquo;t that what we want,
+  as the point of big t is to increase faithfulness to the guide?</p>
+
+  <figure class="fig">
+    <span class="shot"><img src="../assets/sdedit/paper-t0-sweet-spot.webp" alt="The same paper figure again: KID and L2 against t0 with a sweet spot in the middle, and a strip of outputs from faithful to realistic" loading="lazy" decoding="async"></span>
+  </figure>
+
+  <p>Remember we want to vary between faithful and realistic.</p>
+  <ul>
+    <li>More iterations = more DOF for the model to produce a realistic image.</li>
+    <li>Less iterations = less DOF for the model to change things, so it produces a more faithful image.</li>
+  </ul>
+
+  <p>A good guidance scale parameter is needed so the model with both less and more iterations can produce a
+  good output. This goes hand in hand with the scheduler which floods the image with noise. Can we find a good
+  parameter that is faithful to the scheduler?</p>
+
+  <h2 id="sec:search-2d"><span class="secnum">6</span>Searching over t<sub>0</sub> and guidance scale</h2>
+
+  <p>Before doing a 2D search I wanted to input the guide like training images would have been when the model
+  was trained to denoise. I tried it through the encoder (left) and multiplied by the scaling factor (0.18215)
+  used in the decoder (right). It didn&rsquo;t really work, probably because the distribution was modified
+  during training (I think to ~<span class="math">N(0, 1)</span>).</p>
+
+  <div class="figrow two">
+    <figure class="fig" style="margin:0">
+      <span class="shot"><img src="../assets/sdedit/latent-through-encoder.webp" alt="The guide passed through the encoder: a soft, washed out version of the painted landscape" loading="lazy" decoding="async"></span>
+      <figcaption>Through the encoder</figcaption>
+    </figure>
+    <figure class="fig" style="margin:0">
+      <span class="shot"><img src="../assets/sdedit/latent-scaled.webp" alt="The guide multiplied by the decoder scaling factor 0.18215: darker and more saturated than the encoder version" loading="lazy" decoding="async"></span>
+      <figcaption>Multiplied by the scaling factor. Latent from autoencoder: mean = 1.4726, std = 5.3844</figcaption>
+    </figure>
+  </div>
+
+  <p class="note-warn">[Warning: BUG, the seed was changing each time]</p>
+
+  <p>Results of a 2D search on guidance scale and <span class="math">t<sub>0</sub></span> (diffusion timestep
+  start) with 20 iterations. Part A with the prompt:</p>
+  <ul>
+    <li>&ldquo;High quality Nikon D850 DSLR 4k photo with F11 aperture, high resolution and realistic.&rdquo;</li>
+  </ul>
+
+  <figure class="fig">
+    <span class="shot"><img src="../assets/sdedit/search-2d-with-prompt.webp" alt="A 10x10 grid of outputs: guidance scale 0 to 0.9 across, t0 0 to 0.9 down. The top rows are photographs of cameras driven by the prompt, the lower right cells resolve into the guide's landscape under noise" loading="lazy" decoding="async"></span>
+    <figcaption>Guidance scale 0&ndash;0.9 across, <span class="math">t<sub>0</sub></span> 0&ndash;0.9 down.
+    With the camera prompt the model spends its freedom on the prompt rather than the guide.</figcaption>
+  </figure>
+
+  <p class="note-warn">[Warning: BUG, the seed was changing each time]</p>
+
+  <p>Results of the 2D search on guidance scale and <span class="math">t<sub>0</sub></span> with no prompt:</p>
+
+  <figure class="fig">
+    <span class="shot"><img src="../assets/sdedit/search-2d-no-prompt.webp" alt="A second 10x10 grid without a prompt: unrelated photographs at low t0, the guide's landscape emerging in the right-hand columns at higher guidance scale" loading="lazy" decoding="async"></span>
+    <figcaption>Guidance scale 0&ndash;0.9 across, <span class="math">t<sub>0</sub></span> 0&ndash;0.9 down,
+    with no prompt.</figcaption>
+  </figure>
+
+  <div class="figrow two">
+    <figure class="fig" style="margin:0">
+      <span class="shot"><img src="../assets/sdedit/guide-sketch.webp" alt="The painted guide: sky, headland, shoreline, field and tower in flat colour" loading="lazy" decoding="async"></span>
+      <figcaption>Guide</figcaption>
+    </figure>
+    <figure class="fig" style="margin:0">
+      <span class="shot"><img src="../assets/sdedit/best-with-prompt.webp" alt="Output with the prompt: a town on a hillside above water, with a spire, but with large hallucinated lettering across the sky" loading="lazy" decoding="async"></span>
+      <figcaption>Best with prompt: <span class="math">t<sub>0</sub></span> = 0.5, guidance scale = 0.8</figcaption>
+    </figure>
+  </div>
+
+  <p>With a prompt the outputs were generally poorer than without.</p>
+
+  <div class="figrow two">
+    <figure class="fig" style="margin:0">
+      <span class="shot"><img src="../assets/sdedit/guide-sketch.webp" alt="The same painted guide" loading="lazy" decoding="async"></span>
+      <figcaption>Guide</figcaption>
+    </figure>
+    <figure class="fig" style="margin:0">
+      <span class="shot"><img src="../assets/sdedit/best-no-prompt.webp" alt="Output with no prompt: a painterly lakeside town with a church spire, following the guide's layout closely" loading="lazy" decoding="async"></span>
+      <figcaption>Best from no prompt: <span class="math">t<sub>0</sub></span> = 0.4, guidance scale = 0.9</figcaption>
+    </figure>
+  </div>
+
+  <p>This makes sense here as the paper recommended <span class="math">t<sub>0</sub></span> = [0.3, 0.6]. This
+  is reasonable between faithful and realistic.</p>
+
+  <p class="note-warn">[Warning: the seed was changing each time]</p>
+
+  <p>With 200 iterations and <span class="math">t<sub>0</sub></span> = 0.5, guidance scale 0.7 to 1.1:</p>
+
+  <figure class="fig">
+    <span class="shot"><img src="../assets/sdedit/guidance-200-iters-no-prompt.webp" alt="A row of five outputs at guidance scale 0.7 to 1.1 with no prompt, each a painterly lakeside town, growing flatter and closer to the guide as the scale rises" loading="lazy" decoding="async"></span>
+    <figcaption>No prompt. Guidance scale 0.7, 0.8, 0.9, 1.0, 1.1.</figcaption>
+  </figure>
+
+  <figure class="fig">
+    <span class="shot"><img src="../assets/sdedit/guidance-200-iters-with-prompt.webp" alt="The same sweep with a prompt: five outputs that drift further from the guide, the last two losing the town altogether" loading="lazy" decoding="async"></span>
+    <figcaption>With prompt. Guidance scale 0.7, 0.8, 0.9, 1.0, 1.1. Note images did not export at the same
+    resolution.</figcaption>
+  </figure>
+
+  <p>Let&rsquo;s try again with no prompt but varying iteration scale.</p>
+
+  <h2 id="sec:search-iterations"><span class="secnum">7</span>Searching over iterations</h2>
+
+  <p>What happens if we change the number of iterations, with no prompt,
+  <span class="math">t<sub>0</sub></span> = 0.4 and guidance scale = 0.9?</p>
+
+  <figure class="fig">
+    <span class="shot"><img src="../assets/sdedit/iterations-2-18.webp" alt="Nine outputs at 2 to 18 iterations: the first is a brown blur, the rest settle into the lakeside town" loading="lazy" decoding="async"></span>
+    <span class="shot" style="margin-top:.8rem"><img src="../assets/sdedit/iterations-20-180.webp" alt="Nine outputs at 20 to 180 iterations, all close variants of the same town, the tower's top changing between a ball and a spire" loading="lazy" decoding="async"></span>
+    <figcaption>Above 2&ndash;18 and below 20&ndash;180 iterations. Notice how the tower oscillates between
+    spire and ball before converging on spire.</figcaption>
+  </figure>
+
+  <figure class="fig">
+    <span class="shot"><img src="../assets/sdedit/iterations-2-18-prompt.webp" alt="Nine outputs at 2 to 18 iterations with the sunrise landscape prompt, the first a band of colour, the rest pink-skied mountain valleys" loading="lazy" decoding="async"></span>
+    <span class="shot" style="margin-top:.8rem"><img src="../assets/sdedit/iterations-20-180-prompt.webp" alt="Nine outputs at 20 to 180 iterations with the prompt, all pink-skied mountain valleys with a lake" loading="lazy" decoding="async"></span>
+    <figcaption>With a prompt (generated by GPT-4): <em>Create a stunning landscape image showcasing a serene
+    mountain valley during sunrise. The scene should feature majestic mountains with snow-capped peaks in the
+    background, casting a soft pink and orange glow from the rising sun. In the foreground, include a tranquil,
+    crystal-clear lake reflecting the vibrant colors of the sunrise and the mountains. Surround the lake with
+    lush greenery, including tall pine trees and wildflowers in a variety of colors. A gentle mist should be
+    rising from the surface of the lake, adding a mystical quality to the scene. The sky should be a gradient
+    of warm sunrise colors, with a few fluffy clouds tinged with pink and orange hues.</em> [I think some of
+    the prompt was truncated (77 tokens) but anyway.]</figcaption>
+  </figure>
+
+  <p>You can see how much more of an effect the prompt has on the image than the condition map. This is because
+  it is applied each iteration through cross attention. We could experiment with guidance scale (set to 7.5
+  here).</p>
+
+  <h2 id="sec:many-guides"><span class="secnum">8</span>Running over lots of different guides</h2>
+
+  <figure class="fig">
+    <span class="shot"><img src="../assets/sdedit/guides-latent-1.webp" alt="A row of church interior guides paired with their washed-out latent representations" loading="lazy" decoding="async"></span>
+    <span class="shot" style="margin-top:.8rem"><img src="../assets/sdedit/guides-latent-2.webp" alt="A second row of guides — church interiors, a physics diagram, a castle painting — each beside its latent" loading="lazy" decoding="async"></span>
+    <span class="shot" style="margin-top:.8rem"><img src="../assets/sdedit/guides-latent-3.webp" alt="A third row: a college photograph, a cartoon horse and a grid of switchgear, each beside its latent" loading="lazy" decoding="async"></span>
+    <figcaption>Input and latent space.</figcaption>
+  </figure>
+
+  <figure class="fig">
+    <span class="shot"><img src="../assets/sdedit/guides-inputs.webp" alt="A strip of the eleven input guides: line drawings, photographs, diagrams and flat paintings" loading="lazy" decoding="async"></span>
+    <span class="shot" style="margin-top:.8rem"><img src="../assets/sdedit/guides-outputs-20.webp" alt="The eleven outputs at 20 iterations, each keeping the layout of its guide" loading="lazy" decoding="async"></span>
+    <span class="shot" style="margin-top:.8rem"><img src="../assets/sdedit/guides-outputs-100.webp" alt="The same eleven at 100 iterations, smoother and further from the guides" loading="lazy" decoding="async"></span>
+    <figcaption>Input and output at 20 iterations (<span class="math">t<sub>0</sub></span> = 0.4, guidance
+    scale = 0.9, seed = 30) (Word reduces quality). Bottom is at 100 iterations. I think it&rsquo;s better at
+    20.</figcaption>
+  </figure>
+
+  <h2 id="sec:conclusion"><span class="secnum">9</span>Conclusion</h2>
+
+  <p>The model is trying to map the image to the distribution it learned by denoising (which perturbs the
+  model). We input a new image and it is mapped to a realistic one. We do this entirely by sampling the
+  model&rsquo;s latent space to produce a good result. We do not train the model on this specific task; rather
+  the idea here is that the model is so big it covers a large distribution of image data and therefore knows
+  how to perform this mapping on new data.</p>
+
+  <h3 id="sec:improvements">Improvements</h3>
+
+  <p>Conditioning is lost over time. As we iterate through, we lose sight of the original conditioning so the
+  model diverges. We would be better off training the model with image conditioning cross-attention (like we
+  have with text). We could train the model with (high, low) quality image-image pairs. We would treat user
+  input as low quality and the model aims to improve it. This seems like a much better setup to me because we
+  get the advantages of training a model on the problem (and the benefits of cross-attention conditioning) as
+  opposed to using a pretrained model and trying to sample from latent space to get a good result.</p>
+
+  <p>With this current conditioning we also lose out on iteration steps, e.g. if
+  <span class="math">t<sub>0</sub></span> = 0.5 we lose half our iteration steps, hence this horrible balance
+  between faithfulness and realism. With this idea we could get both.</p>
+
+  <footer>
+    Benjamin Poole &middot; Web edition of my notes from December 2023 (v1.3).
+  </footer>
+
+</article>
+</div>
+
+<script>
+(function(){
+  var root=document.documentElement;
+  try{var s=localStorage.getItem('theme'); if(s) root.setAttribute('data-theme',s);}catch(e){}
+  document.getElementById('theme').addEventListener('click',function(){
+    var dark=matchMedia('(prefers-color-scheme: dark)').matches;
+    var cur=root.getAttribute('data-theme')||(dark?'dark':'light');
+    var next=cur==='dark'?'light':'dark';
+    root.setAttribute('data-theme',next);
+    try{localStorage.setItem('theme',next);}catch(e){}
+  });
+
+  var prog=document.getElementById('prog');
+  addEventListener('scroll',function(){
+    var h=document.documentElement.scrollHeight-innerHeight;
+    prog.style.width=(h>0?(scrollY/h*100):0)+'%';
+  },{passive:true});
+
+  var links={}, heads=[];
+  document.querySelectorAll('.toc-list a').forEach(function(a){
+    var id=a.getAttribute('href').slice(1); links[id]=a;
+    var el=document.getElementById(id); if(el) heads.push(el);
+  });
+  var cur=null;
+  function spy(){
+    var best=null;
+    heads.forEach(function(el){
+      if(el.getBoundingClientRect().top<=120) best=el;
+    });
+    if(best&&best!==cur){
+      if(cur&&links[cur.id]) links[cur.id].classList.remove('active');
+      cur=best;
+      var a=links[cur.id];
+      if(a){a.classList.add('active');
+        var box=a.closest('aside');
+        if(box&&box.scrollHeight>box.clientHeight){
+          var t=a.offsetTop-box.clientHeight/2;
+          box.scrollTo({top:t,behavior:'smooth'});
+        }
+      }
+    }
+  }
+  addEventListener('scroll',spy,{passive:true}); spy();
+})();
+</script>
+</body>
+</html>

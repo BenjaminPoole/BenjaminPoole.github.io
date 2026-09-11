@@ -1,0 +1,1026 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="utf-8">
+    <meta content="width=device-width, initial-scale=1.0" name="viewport">
+    <title>Ferranti Mark 1 Emulator & Report</title>
+    <style>
+        /* Custom Scrollbar */
+        ::-webkit-scrollbar { width: 8px; height: 8px; }
+        ::-webkit-scrollbar-track { background: #111; }
+        ::-webkit-scrollbar-thumb { background: #333; border-radius: 4px; }
+        ::-webkit-scrollbar-thumb:hover { background: #444; }
+
+        .crt::before {
+            content: " "; display: block; position: absolute; top: 0; left: 0; bottom: 0; right: 0;
+            background: linear-gradient(rgba(18, 16, 16, 0) 50%, rgba(0, 0, 0, 0.1) 50%), linear-gradient(90deg, rgba(255, 0, 0, 0.03), rgba(0, 255, 0, 0.01), rgba(0, 0, 255, 0.03));
+            z-index: 50; background-size: 100% 2px, 3px 100%; pointer-events: none;
+        }
+
+        /* Syntax Highlighting */
+        .token-keyword { color: #569cd6; font-weight: bold; } 
+        .token-number { color: #b5cea8; } 
+        .token-comment { color: #6a9955; } 
+        .token-text { color: #d4d4d4; }
+
+        /* Log Colors */
+        .log-key { color: #9cdcfe; }
+        .log-val-num { color: #b5cea8; }
+        .log-val-str { color: #ce9178; }
+
+        /* Tube Glow */
+        .tube-active { box-shadow: 0 0 20px rgba(34, 197, 94, 0.3); }
+        
+        /* Icons (inline SVG, sized like the glyphs they replaced) */
+        .icon { flex: none; fill: currentColor; width: 24px; height: 24px; }
+        .icon-s { width: 14px; height: 20px; padding: 3px 0; }
+        .icon[hidden] { display: none; }
+
+        /* Editor Sync: the textarea owns the scrollbar, the highlight layer and
+           the gutter are scrolled to match it in syncScroll(). */
+        #highlightLayer, #codeInput {
+            font-family: 'Consolas', 'Monaco', 'Courier New', monospace; font-size: 14px; line-height: 1.5;
+            padding: 1rem; margin: 0; border: 0; width: 100%; height: 100%; white-space: pre; tab-size: 4;
+        }
+        #codeInput { overflow: auto; }
+        #highlightLayer { overflow: hidden; }
+        #lineNumbers { overflow: hidden; }
+        .line-numbers div { height: 21px; }
+
+        /* Report Typography (sizes/margins come from the utility classes on the
+           elements themselves so the headings stay on one type scale) */
+        .report-text p { margin-bottom: 1rem; line-height: 1.6; }
+        .report-text ul { list-style-type: disc; padding-left: 1.5rem; margin-bottom: 1rem; }
+    </style>
+
+    <!-- Generated with the Tailwind CLI, replacing the ~400KB cdn.tailwindcss.com
+         runtime compiler. Kept last so it still wins the cascade against the
+         handwritten rules above, exactly as the CDN did when it appended at
+         runtime (e.g. .shadow-xl over .tube-active). -->
+    <style>
+*,:after,:before{--tw-border-spacing-x:0;--tw-border-spacing-y:0;--tw-translate-x:0;--tw-translate-y:0;--tw-rotate:0;--tw-skew-x:0;--tw-skew-y:0;--tw-scale-x:1;--tw-scale-y:1;--tw-pan-x: ;--tw-pan-y: ;--tw-pinch-zoom: ;--tw-scroll-snap-strictness:proximity;--tw-gradient-from-position: ;--tw-gradient-via-position: ;--tw-gradient-to-position: ;--tw-ordinal: ;--tw-slashed-zero: ;--tw-numeric-figure: ;--tw-numeric-spacing: ;--tw-numeric-fraction: ;--tw-ring-inset: ;--tw-ring-offset-width:0px;--tw-ring-offset-color:#fff;--tw-ring-color:rgba(59,130,246,.5);--tw-ring-offset-shadow:0 0 #0000;--tw-ring-shadow:0 0 #0000;--tw-shadow:0 0 #0000;--tw-shadow-colored:0 0 #0000;--tw-blur: ;--tw-brightness: ;--tw-contrast: ;--tw-grayscale: ;--tw-hue-rotate: ;--tw-invert: ;--tw-saturate: ;--tw-sepia: ;--tw-drop-shadow: ;--tw-backdrop-blur: ;--tw-backdrop-brightness: ;--tw-backdrop-contrast: ;--tw-backdrop-grayscale: ;--tw-backdrop-hue-rotate: ;--tw-backdrop-invert: ;--tw-backdrop-opacity: ;--tw-backdrop-saturate: ;--tw-backdrop-sepia: ;--tw-contain-size: ;--tw-contain-layout: ;--tw-contain-paint: ;--tw-contain-style: }::backdrop{--tw-border-spacing-x:0;--tw-border-spacing-y:0;--tw-translate-x:0;--tw-translate-y:0;--tw-rotate:0;--tw-skew-x:0;--tw-skew-y:0;--tw-scale-x:1;--tw-scale-y:1;--tw-pan-x: ;--tw-pan-y: ;--tw-pinch-zoom: ;--tw-scroll-snap-strictness:proximity;--tw-gradient-from-position: ;--tw-gradient-via-position: ;--tw-gradient-to-position: ;--tw-ordinal: ;--tw-slashed-zero: ;--tw-numeric-figure: ;--tw-numeric-spacing: ;--tw-numeric-fraction: ;--tw-ring-inset: ;--tw-ring-offset-width:0px;--tw-ring-offset-color:#fff;--tw-ring-color:rgba(59,130,246,.5);--tw-ring-offset-shadow:0 0 #0000;--tw-ring-shadow:0 0 #0000;--tw-shadow:0 0 #0000;--tw-shadow-colored:0 0 #0000;--tw-blur: ;--tw-brightness: ;--tw-contrast: ;--tw-grayscale: ;--tw-hue-rotate: ;--tw-invert: ;--tw-saturate: ;--tw-sepia: ;--tw-drop-shadow: ;--tw-backdrop-blur: ;--tw-backdrop-brightness: ;--tw-backdrop-contrast: ;--tw-backdrop-grayscale: ;--tw-backdrop-hue-rotate: ;--tw-backdrop-invert: ;--tw-backdrop-opacity: ;--tw-backdrop-saturate: ;--tw-backdrop-sepia: ;--tw-contain-size: ;--tw-contain-layout: ;--tw-contain-paint: ;--tw-contain-style: }/*! tailwindcss v3.4.19 | MIT License | https://tailwindcss.com*/*,:after,:before{box-sizing:border-box;border:0 solid #e5e7eb}:after,:before{--tw-content:""}:host,html{line-height:1.5;-webkit-text-size-adjust:100%;-moz-tab-size:4;-o-tab-size:4;tab-size:4;font-family:ui-sans-serif,system-ui,sans-serif,Apple Color Emoji,Segoe UI Emoji,Segoe UI Symbol,Noto Color Emoji;font-feature-settings:normal;font-variation-settings:normal;-webkit-tap-highlight-color:transparent}body{margin:0;line-height:inherit}hr{height:0;color:inherit;border-top-width:1px}abbr:where([title]){-webkit-text-decoration:underline dotted;text-decoration:underline dotted}h1,h2,h3,h4,h5,h6{font-size:inherit;font-weight:inherit}a{color:inherit;text-decoration:inherit}b,strong{font-weight:bolder}code,kbd,pre,samp{font-family:ui-monospace,SFMono-Regular,Menlo,Monaco,Consolas,Liberation Mono,Courier New,monospace;font-feature-settings:normal;font-variation-settings:normal;font-size:1em}small{font-size:80%}sub,sup{font-size:75%;line-height:0;position:relative;vertical-align:baseline}sub{bottom:-.25em}sup{top:-.5em}table{text-indent:0;border-color:inherit;border-collapse:collapse}button,input,optgroup,select,textarea{font-family:inherit;font-feature-settings:inherit;font-variation-settings:inherit;font-size:100%;font-weight:inherit;line-height:inherit;letter-spacing:inherit;color:inherit;margin:0;padding:0}button,select{text-transform:none}button,input:where([type=button]),input:where([type=reset]),input:where([type=submit]){-webkit-appearance:button;background-color:transparent;background-image:none}:-moz-focusring{outline:auto}:-moz-ui-invalid{box-shadow:none}progress{vertical-align:baseline}::-webkit-inner-spin-button,::-webkit-outer-spin-button{height:auto}[type=search]{-webkit-appearance:textfield;outline-offset:-2px}::-webkit-search-decoration{-webkit-appearance:none}::-webkit-file-upload-button{-webkit-appearance:button;font:inherit}summary{display:list-item}blockquote,dd,dl,figure,h1,h2,h3,h4,h5,h6,hr,p,pre{margin:0}fieldset{margin:0}fieldset,legend{padding:0}menu,ol,ul{list-style:none;margin:0;padding:0}dialog{padding:0}textarea{resize:vertical}input::-moz-placeholder,textarea::-moz-placeholder{opacity:1;color:#9ca3af}input::placeholder,textarea::placeholder{opacity:1;color:#9ca3af}[role=button],button{cursor:pointer}:disabled{cursor:default}audio,canvas,embed,iframe,img,object,svg,video{display:block;vertical-align:middle}img,video{max-width:100%;height:auto}[hidden]:where(:not([hidden=until-found])){display:none}.pointer-events-none{pointer-events:none}.absolute{position:absolute}.relative{position:relative}.inset-0{inset:0}.z-10{z-index:10}.z-20{z-index:20}.col-span-2{grid-column:span 2/span 2}.col-span-5{grid-column:span 5/span 5}.mx-auto{margin-left:auto;margin-right:auto}.my-4{margin-top:1rem;margin-bottom:1rem}.mb-10{margin-bottom:2.5rem}.mb-2{margin-bottom:.5rem}.mb-3{margin-bottom:.75rem}.mb-4{margin-bottom:1rem}.ml-2{margin-left:.5rem}.mt-4{margin-top:1rem}.mt-6{margin-top:1.5rem}.mt-8{margin-top:2rem}.block{display:block}.inline{display:inline}.flex{display:flex}.table{display:table}.grid{display:grid}.contents{display:contents}.hidden{display:none}.h-6{height:1.5rem}.h-\[240px\]{height:240px}.h-\[320px\]{height:320px}.h-auto{height:auto}.h-screen{height:100vh}.min-h-0{min-height:0}.min-h-\[500px\]{min-height:500px}.w-10{width:2.5rem}.w-12{width:3rem}.w-\[240px\]{width:240px}.w-\[450px\]{width:450px}.w-full{width:100%}.w-px{width:1px}.max-w-4xl{max-width:56rem}.max-w-full{max-width:100%}.flex-1{flex:1 1 0%}.flex-none{flex:none}.shrink-0{flex-shrink:0}@keyframes pulse{50%{opacity:.5}}.animate-pulse{animation:pulse 2s cubic-bezier(.4,0,.6,1) infinite}.select-none{-webkit-user-select:none;-moz-user-select:none;user-select:none}.resize-none{resize:none}.list-disc{list-style-type:disc}.list-none{list-style-type:none}.grid-cols-12{grid-template-columns:repeat(12,minmax(0,1fr))}.grid-cols-4{grid-template-columns:repeat(4,minmax(0,1fr))}.flex-col{flex-direction:column}.items-center{align-items:center}.justify-center{justify-content:center}.justify-between{justify-content:space-between}.justify-items-center{justify-items:center}.gap-1{gap:.25rem}.gap-2{gap:.5rem}.gap-3{gap:.75rem}.gap-4{gap:1rem}.space-y-1>:not([hidden])~:not([hidden]){--tw-space-y-reverse:0;margin-top:calc(.25rem*(1 - var(--tw-space-y-reverse)));margin-bottom:calc(.25rem*var(--tw-space-y-reverse))}.space-y-2>:not([hidden])~:not([hidden]){--tw-space-y-reverse:0;margin-top:calc(.5rem*(1 - var(--tw-space-y-reverse)));margin-bottom:calc(.5rem*var(--tw-space-y-reverse))}.space-y-6>:not([hidden])~:not([hidden]){--tw-space-y-reverse:0;margin-top:calc(1.5rem*(1 - var(--tw-space-y-reverse)));margin-bottom:calc(1.5rem*var(--tw-space-y-reverse))}.divide-y>:not([hidden])~:not([hidden]){--tw-divide-y-reverse:0;border-top-width:calc(1px*(1 - var(--tw-divide-y-reverse)));border-bottom-width:calc(1px*var(--tw-divide-y-reverse))}.divide-\[\#333\]>:not([hidden])~:not([hidden]){--tw-divide-opacity:1;border-color:rgb(51 51 51/var(--tw-divide-opacity,1))}.overflow-auto{overflow:auto}.overflow-hidden{overflow:hidden}.overflow-x-auto{overflow-x:auto}.overflow-y-auto{overflow-y:auto}.whitespace-pre{white-space:pre}.whitespace-pre-wrap{white-space:pre-wrap}.rounded{border-radius:.25rem}.rounded-full{border-radius:9999px}.border{border-width:1px}.border-\[4px\]{border-width:4px}.border-b{border-bottom-width:1px}.border-l{border-left-width:1px}.border-l-4{border-left-width:4px}.border-r{border-right-width:1px}.border-t{border-top-width:1px}.border-\[\#333\]{--tw-border-opacity:1;border-color:rgb(51 51 51/var(--tw-border-opacity,1))}.border-\[\#444\]{--tw-border-opacity:1;border-color:rgb(68 68 68/var(--tw-border-opacity,1))}.border-gray-800{--tw-border-opacity:1;border-color:rgb(31 41 55/var(--tw-border-opacity,1))}.border-green-600{--tw-border-opacity:1;border-color:rgb(22 163 74/var(--tw-border-opacity,1))}.border-green-700{--tw-border-opacity:1;border-color:rgb(21 128 61/var(--tw-border-opacity,1))}.border-green-900{--tw-border-opacity:1;border-color:rgb(20 83 45/var(--tw-border-opacity,1))}.border-green-900\/30{border-color:rgba(20,83,45,.3)}.border-yellow-600{--tw-border-opacity:1;border-color:rgb(202 138 4/var(--tw-border-opacity,1))}.bg-\[\#050505\]{--tw-bg-opacity:1;background-color:rgb(5 5 5/var(--tw-bg-opacity,1))}.bg-\[\#0a0a0a\]{--tw-bg-opacity:1;background-color:rgb(10 10 10/var(--tw-bg-opacity,1))}.bg-\[\#0c0c0c\]{--tw-bg-opacity:1;background-color:rgb(12 12 12/var(--tw-bg-opacity,1))}.bg-\[\#0f0f0f\]{--tw-bg-opacity:1;background-color:rgb(15 15 15/var(--tw-bg-opacity,1))}.bg-\[\#111\]{--tw-bg-opacity:1;background-color:rgb(17 17 17/var(--tw-bg-opacity,1))}.bg-\[\#1a1a1a\]{--tw-bg-opacity:1;background-color:rgb(26 26 26/var(--tw-bg-opacity,1))}.bg-\[\#1e1e1e\]{--tw-bg-opacity:1;background-color:rgb(30 30 30/var(--tw-bg-opacity,1))}.bg-\[\#222\]{--tw-bg-opacity:1;background-color:rgb(34 34 34/var(--tw-bg-opacity,1))}.bg-\[\#252526\]{--tw-bg-opacity:1;background-color:rgb(37 37 38/var(--tw-bg-opacity,1))}.bg-\[\#2a2a2a\]{--tw-bg-opacity:1;background-color:rgb(42 42 42/var(--tw-bg-opacity,1))}.bg-\[\#444\]{--tw-bg-opacity:1;background-color:rgb(68 68 68/var(--tw-bg-opacity,1))}.bg-black{--tw-bg-opacity:1;background-color:rgb(0 0 0/var(--tw-bg-opacity,1))}.bg-green-800{--tw-bg-opacity:1;background-color:rgb(22 101 52/var(--tw-bg-opacity,1))}.bg-red-900{--tw-bg-opacity:1;background-color:rgb(127 29 29/var(--tw-bg-opacity,1))}.bg-transparent{background-color:transparent}.bg-yellow-800{--tw-bg-opacity:1;background-color:rgb(133 77 14/var(--tw-bg-opacity,1))}.p-2{padding:.5rem}.p-3{padding:.75rem}.p-4{padding:1rem}.p-6{padding:1.5rem}.px-2{padding-left:.5rem;padding-right:.5rem}.px-3{padding-left:.75rem;padding-right:.75rem}.px-4{padding-left:1rem;padding-right:1rem}.px-6{padding-left:1.5rem;padding-right:1.5rem}.py-1{padding-top:.25rem;padding-bottom:.25rem}.py-12{padding-top:3rem;padding-bottom:3rem}.py-2{padding-top:.5rem}.pb-2,.py-2{padding-bottom:.5rem}.pb-6{padding-bottom:1.5rem}.pl-4{padding-left:1rem}.pl-5{padding-left:1.25rem}.pr-3{padding-right:.75rem}.pt-4{padding-top:1rem}.pt-6{padding-top:1.5rem}.text-left{text-align:left}.text-right{text-align:right}.font-mono{font-family:ui-monospace,SFMono-Regular,Menlo,Monaco,Consolas,Liberation Mono,Courier New,monospace}.font-sans{font-family:ui-sans-serif,system-ui,sans-serif,Apple Color Emoji,Segoe UI Emoji,Segoe UI Symbol,Noto Color Emoji}.text-2xl{font-size:1.5rem;line-height:2rem}.text-3xl{font-size:1.875rem;line-height:2.25rem}.text-\[10px\]{font-size:10px}.text-lg{font-size:1.125rem;line-height:1.75rem}.text-sm{font-size:.875rem;line-height:1.25rem}.text-xl{font-size:1.25rem;line-height:1.75rem}.text-xs{font-size:.75rem;line-height:1rem}.font-bold{font-weight:700}.font-normal{font-weight:400}.font-semibold{font-weight:600}.uppercase{text-transform:uppercase}.italic{font-style:italic}.leading-\[1\.5\]{line-height:1.5}.leading-tight{line-height:1.25}.tracking-\[0\.2em\]{letter-spacing:.2em}.tracking-wider{letter-spacing:.05em}.tracking-widest{letter-spacing:.1em}.text-\[\#666\]{--tw-text-opacity:1;color:rgb(102 102 102/var(--tw-text-opacity,1))}.text-blue-400{--tw-text-opacity:1;color:rgb(96 165 250/var(--tw-text-opacity,1))}.text-gray-100{--tw-text-opacity:1;color:rgb(243 244 246/var(--tw-text-opacity,1))}.text-gray-200{--tw-text-opacity:1;color:rgb(229 231 235/var(--tw-text-opacity,1))}.text-gray-300{--tw-text-opacity:1;color:rgb(209 213 219/var(--tw-text-opacity,1))}.text-gray-400{--tw-text-opacity:1;color:rgb(156 163 175/var(--tw-text-opacity,1))}.text-gray-500{--tw-text-opacity:1;color:rgb(107 114 128/var(--tw-text-opacity,1))}.text-gray-600{--tw-text-opacity:1;color:rgb(75 85 99/var(--tw-text-opacity,1))}.text-green-400{--tw-text-opacity:1;color:rgb(74 222 128/var(--tw-text-opacity,1))}.text-green-500{--tw-text-opacity:1;color:rgb(34 197 94/var(--tw-text-opacity,1))}.text-green-600{--tw-text-opacity:1;color:rgb(22 163 74/var(--tw-text-opacity,1))}.text-green-600\/70{color:rgba(22,163,74,.7)}.text-green-600\/80{color:rgba(22,163,74,.8)}.text-red-500{--tw-text-opacity:1;color:rgb(239 68 68/var(--tw-text-opacity,1))}.text-transparent{color:transparent}.text-white{--tw-text-opacity:1;color:rgb(255 255 255/var(--tw-text-opacity,1))}.text-yellow-500{--tw-text-opacity:1;color:rgb(234 179 8/var(--tw-text-opacity,1))}.underline{text-decoration-line:underline}.caret-white{caret-color:#fff}.shadow-lg{--tw-shadow:0 10px 15px -3px rgba(0,0,0,.1),0 4px 6px -4px rgba(0,0,0,.1);--tw-shadow-colored:0 10px 15px -3px var(--tw-shadow-color),0 4px 6px -4px var(--tw-shadow-color)}.shadow-lg,.shadow-md{box-shadow:var(--tw-ring-offset-shadow,0 0 #0000),var(--tw-ring-shadow,0 0 #0000),var(--tw-shadow)}.shadow-md{--tw-shadow:0 4px 6px -1px rgba(0,0,0,.1),0 2px 4px -2px rgba(0,0,0,.1);--tw-shadow-colored:0 4px 6px -1px var(--tw-shadow-color),0 2px 4px -2px var(--tw-shadow-color)}.shadow-xl{--tw-shadow:0 20px 25px -5px rgba(0,0,0,.1),0 8px 10px -6px rgba(0,0,0,.1);--tw-shadow-colored:0 20px 25px -5px var(--tw-shadow-color),0 8px 10px -6px var(--tw-shadow-color);box-shadow:var(--tw-ring-offset-shadow,0 0 #0000),var(--tw-ring-shadow,0 0 #0000),var(--tw-shadow)}.outline-none{outline:2px solid transparent;outline-offset:2px}.transition-all{transition-property:all;transition-timing-function:cubic-bezier(.4,0,.2,1);transition-duration:.15s}.hover\:border-red-900:hover{--tw-border-opacity:1;border-color:rgb(127 29 29/var(--tw-border-opacity,1))}.hover\:bg-\[\#3a3a3a\]:hover{--tw-bg-opacity:1;background-color:rgb(58 58 58/var(--tw-bg-opacity,1))}.hover\:bg-green-700:hover{--tw-bg-opacity:1;background-color:rgb(21 128 61/var(--tw-bg-opacity,1))}.hover\:bg-red-900\/30:hover{background-color:rgba(127,29,29,.3)}.hover\:bg-yellow-700:hover{--tw-bg-opacity:1;background-color:rgb(161 98 7/var(--tw-bg-opacity,1))}.hover\:underline:hover{text-decoration-line:underline}.focus\:outline-none:focus{outline:2px solid transparent;outline-offset:2px}@media (min-width:768px){.md\:inline{display:inline}}
+    </style>
+</head>
+
+<body class="bg-[#0a0a0a] text-gray-300 font-sans h-screen overflow-hidden">
+
+<div class="h-screen flex flex-col overflow-hidden relative border-b border-[#333]">
+    <header class="flex justify-between items-center px-4 py-2 border-b border-[#333] bg-[#111] z-10 shadow-md flex-none">
+        <div class="flex items-center gap-3">
+            <svg class="icon text-green-500" viewBox="0 -960 960 960" aria-hidden="true"><path d="M80-160v-80h800v80H80Zm80-120q-33 0-56.5-23.5T80-360v-400q0-33 23.5-56.5T160-840h640q33 0 56.5 23.5T880-760v400q0 33-23.5 56.5T800-280H160Z"/></svg>
+            <h1 class="text-lg font-bold tracking-wider text-gray-200">Ferranti Mark 1 Emulator<span class="hidden md:inline text-xs font-normal text-gray-500 ml-2">Benjamin Poole (2026)</span></h1>
+        </div>
+        <div class="flex items-center gap-4">
+            <div class="flex items-center bg-[#222] rounded border border-[#444] px-2 py-1 gap-2">
+                <span class="text-[10px] uppercase text-gray-400 font-bold">Clock</span>
+                <input type="number" id="clockSpeed" value="10" min="0.1" max="100000" step="0.5" class="w-12 bg-transparent text-right text-xs text-green-400 focus:outline-none font-mono">
+                <span class="text-[10px] text-gray-500">Hz</span>
+            </div>
+            
+            <div class="h-6 w-px bg-[#444]"></div>
+
+            <button id="btnStep" class="flex items-center gap-1 px-3 py-1 bg-[#2a2a2a] hover:bg-[#3a3a3a] border border-[#444] text-gray-300 text-xs rounded transition-all">
+                <svg class="icon icon-s" viewBox="0 -960 960 960" aria-hidden="true"><path d="M480-80q-83 0-156-31.5T197-197q-54-54-85.5-127T80-480q0-83 31.5-156T197-763q54-54 127-85.5T480-880q83 0 156 31.5T763-763q54 54 85.5 127T880-480q0 83-31.5 156T763-197q-54 54-127 85.5T480-80Zm0-80q134 0 227-93t93-227q0-134-93-227t-227-93q-134 0-227 93t-93 227q0 134 93 227t227 93Z"/></svg> Step
+            </button>
+
+            <button id="btnRun" class="flex items-center gap-1 px-3 py-1 border text-white text-xs rounded transition-all shadow-lg bg-green-800 hover:bg-green-700 border-green-600">
+                <svg class="icon icon-s" id="iconPlay" viewBox="0 -960 960 960" aria-hidden="true"><path d="M320-200v-560l440 280-440 280Z"/></svg><svg class="icon icon-s" id="iconPause" viewBox="0 -960 960 960" aria-hidden="true" hidden><path d="M520-200v-560h240v560H520Zm-320 0v-560h240v560H200Z"/></svg> <span id="textRun">Run</span>
+            </button>
+            
+            <button id="btnReset" class="flex items-center gap-1 px-3 py-1 bg-[#2a2a2a] hover:bg-red-900/30 border border-[#444] hover:border-red-900 text-gray-300 text-xs rounded transition-all ml-2">
+                <svg class="icon icon-s" viewBox="0 -960 960 960" aria-hidden="true"><path d="M440-122q-121-15-200.5-105.5T160-440q0-66 26-126.5T260-672l57 57q-38 34-57.5 79T240-440q0 88 56 155.5T440-202v80Zm80 0v-80q87-16 143.5-83.5T720-440q0-100-70-170t-170-70h-3l44 44-56 56-140-140 140-140 56 56-44 44h3q134 0 227 93t93 227q0 121-79.5 211.5T520-122Z"/></svg>
+            </button>
+        </div>
+    </header>
+
+    <main class="flex-1 flex overflow-hidden relative crt bg-[#050505]">
+        
+        <div class="flex-1 flex flex-col overflow-y-auto custom-scrollbar relative">
+            
+            <div class="grid grid-cols-12 h-[320px] border-b border-[#333] shrink-0">
+                <div class="col-span-5 bg-[#1e1e1e] flex flex-col border-r border-[#333] relative group min-h-0 overflow-hidden">
+                    <div class="flex items-center justify-between px-3 py-1 bg-[#252526] text-[10px] text-gray-400 border-b border-[#333]">
+                        <span class="uppercase tracking-wider font-bold">Source Code</span>
+                    </div>
+                    <div class="flex-1 relative flex overflow-hidden min-h-0">
+                        <div class="w-10 bg-[#1e1e1e] text-right pr-3 pt-4 text-[#666] select-none font-mono text-sm leading-[1.5] border-r border-[#333] line-numbers" id="lineNumbers"><div>0</div><div>1</div><div>2</div><div>3</div><div>4</div><div>5</div><div>6</div><div>7</div></div>
+                        <div class="relative flex-1 bg-[#1e1e1e]">
+                            <pre aria-hidden="true" class="absolute inset-0 pointer-events-none text-transparent" id="highlightLayer"><span class="token-keyword">ld</span> <span class="token-number">6</span> <span class="token-comment">// a = 10, program to count down from 10 to 0</span>
+<span class="token-keyword">sub</span> <span class="token-number">5</span> <span class="token-comment">// a -= 1</span>
+<span class="token-keyword">jgt_a</span> <span class="token-number">7</span> <span class="token-comment">// data 2, go back -1 instructions</span>
+<span class="token-keyword">add</span> <span class="token-number">5</span> <span class="token-comment">// a += 1 as we count to -1</span>
+<span class="token-keyword">stop</span> <span class="token-comment">// a now = 0</span>
+<span class="token-keyword">data</span> <span class="token-number">1</span> <span class="token-comment">// count down from 10</span>
+<span class="token-keyword">data</span> <span class="token-number">10</span>
+<span class="token-keyword">data</span> <span class="token-number">1</span></pre>
+                            <textarea class="absolute inset-0 bg-transparent text-transparent caret-white resize-none outline-none text-gray-300" id="codeInput" spellcheck="false">ld 6 // a = 10, program to count down from 10 to 0
+sub 5 // a -= 1
+jgt_a 7 // data 2, go back -1 instructions
+add 5 // a += 1 as we count to -1
+stop // a now = 0
+data 1 // count down from 10
+data 10
+data 1</textarea>
+                        </div>
+                    </div>
+                </div>
+
+                <div class="col-span-2 bg-[#1e1e1e] flex flex-col border-r border-[#333] min-h-0 overflow-hidden">
+                    <div class="px-3 py-1 bg-[#252526] text-[10px] text-gray-400 border-b border-[#333] uppercase font-bold tracking-wider">Teleprinter</div>
+                    <div class="flex-1 p-2 text-xs font-mono text-green-400 whitespace-pre overflow-y-auto custom-scrollbar bg-[#111]" id="teleprinterOutput">[
+  'I/T/S/TN',
+  'U//HS/TI',
+  '///G////',
+  'E///////',
+  'R///////',
+  'E///////'
+]</div>
+                </div>
+
+                <div class="col-span-5 bg-[#1e1e1e] flex flex-col min-h-0 overflow-hidden">
+                    <div class="px-3 py-1 bg-[#252526] text-[10px] text-gray-400 border-b border-[#333] uppercase font-bold tracking-wider">Binary Translation</div>
+                    <div class="flex-1 p-2 text-xs font-mono text-green-600/80 whitespace-pre overflow-auto custom-scrollbar leading-tight bg-[#0f0f0f]" id="binaryOutput">[
+  '0110000000000010000010100000000000100110',
+  '1110000000000000010110100000000000101100',
+  '0000000000000000101100000000000000000000',
+  '1000000000000000000000000000000000000000',
+  '0101000000000000000000000000000000000000',
+  '1000000000000000000000000000000000000000'
+]</div>
+                </div>
+            </div>
+
+            <div class="p-6 bg-black min-h-[500px] shrink-0">
+                
+                <div class="mb-10">
+                    <h2 class="text-green-600/70 font-bold tracking-[0.2em] mb-4 text-xs uppercase border-b border-green-900/30 pb-2">Electronic Store (Memory)</h2>
+                    <div class="grid grid-cols-4 gap-2 justify-items-center" id="memoryContainer"><canvas id="memTube_0" width="400" height="400" class="w-[240px] h-[240px] rounded-full bg-black border-[4px] border-gray-800 shadow-xl tube-active"></canvas><canvas id="memTube_1" width="400" height="400" class="w-[240px] h-[240px] rounded-full bg-black border-[4px] border-gray-800 shadow-xl tube-active"></canvas><canvas id="memTube_2" width="400" height="400" class="w-[240px] h-[240px] rounded-full bg-black border-[4px] border-gray-800 shadow-xl tube-active"></canvas><canvas id="memTube_3" width="400" height="400" class="w-[240px] h-[240px] rounded-full bg-black border-[4px] border-gray-800 shadow-xl tube-active"></canvas><canvas id="memTube_4" width="400" height="400" class="w-[240px] h-[240px] rounded-full bg-black border-[4px] border-gray-800 shadow-xl tube-active"></canvas><canvas id="memTube_5" width="400" height="400" class="w-[240px] h-[240px] rounded-full bg-black border-[4px] border-gray-800 shadow-xl tube-active"></canvas><canvas id="memTube_6" width="400" height="400" class="w-[240px] h-[240px] rounded-full bg-black border-[4px] border-gray-800 shadow-xl tube-active"></canvas><canvas id="memTube_7" width="400" height="400" class="w-[240px] h-[240px] rounded-full bg-black border-[4px] border-gray-800 shadow-xl tube-active"></canvas></div>
+                </div>
+
+                <div class="border-t border-green-900/30 pt-6">
+                    <div class="grid grid-cols-4 gap-2 justify-items-center">
+                        <div class="flex flex-col items-center gap-2 w-full">
+                            <label class="text-green-600/70 text-[10px] font-bold uppercase tracking-widest">Accumulator</label>
+                            <div class="w-full flex justify-center" id="accContainer"><canvas id="accTube" width="400" height="400" class="w-[240px] h-[240px] rounded-full bg-black border-[4px] border-gray-800 shadow-xl tube-active"></canvas></div>
+                        </div>
+                        <div class="flex flex-col items-center gap-2 w-full">
+                            <label class="text-green-600/70 text-[10px] font-bold uppercase tracking-widest">Program Counter</label>
+                            <div class="w-full flex justify-center" id="pcContainer"><canvas id="pcTube" width="400" height="400" class="w-[240px] h-[240px] rounded-full bg-black border-[4px] border-gray-800 shadow-xl tube-active"></canvas></div>
+                        </div>
+                        <div class="flex flex-col items-center gap-2 w-full">
+                            <label class="text-green-600/70 text-[10px] font-bold uppercase tracking-widest">B-Lines</label>
+                            <div class="w-full flex justify-center" id="bContainer"><canvas id="bTube" width="400" height="400" class="w-[240px] h-[240px] rounded-full bg-black border-[4px] border-gray-800 shadow-xl tube-active"></canvas></div>
+                        </div>
+                        <div class="flex flex-col items-center gap-2 w-full">
+                            <label class="text-green-600/70 text-[10px] font-bold uppercase tracking-widest">Multiplicand</label>
+                            <div class="w-full flex justify-center" id="mContainer"><canvas id="mTube" width="400" height="400" class="w-[240px] h-[240px] rounded-full bg-black border-[4px] border-gray-800 shadow-xl tube-active"></canvas></div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <section class="max-w-4xl mx-auto px-6 py-12 text-gray-300 report-text">
+                <div class="mb-10 border-b border-[#333] pb-6">
+                    <h1 class="text-3xl font-bold text-gray-100 mb-2">Ferranti Mark 1 Report</h1>
+                    <div class="text-sm text-gray-500">Year 3 - Benjamin Poole</div>
+                </div>
+            
+                <div class="space-y-6">
+                    <blockquote dir="auto" class="border-l-4 border-green-700 pl-4 italic text-gray-400">
+                        <p>For my history of computing project at University of Southampton</p>
+                    </blockquote>
+            
+                    <p dir="auto">This is my emulation of the Ferranti Mark I (also know as the Mark II). It is based of Alan Turing's First Manual for the Ferranti Mark I written around 1949/50 (Turing, 1950). This emulation aims to be faithful to the machines instruction semantics while focusing on usability. I therefore abstract I/O and present a simplified hardware interface</p>
+            
+                    <p dir="auto">The Ferranti Mark was the world's first commercial computer, delivered in 1951. It was designed as an extension of the Manchester Mark 1 which itself extends from the Manchester Baby (also known as the SSEM) which was the first stored program computer. I first give an overview of the Architectural design of the Ferranti Mark 1 in its historical context and then discuss the emulation specific details.</p>
+                    
+                    <img loading="lazy" decoding="async" width="850" height="586" alt="Ferranti Mark 1 installation: valve racks at left, operator console with CRT displays and paper tape at right" src="ferranti-mark-1.jpg" class="max-w-full h-auto rounded shadow-lg my-4" style="width: 600px;">
+                    <p class="text-sm text-gray-500 italic">Image from (Paul Doornbusch, 2017)</p>
+            
+                    <h2 class="text-2xl font-bold text-gray-100 mt-8 mb-4">1. Architectural design</h2>
+                    
+                    <h3 class="text-xl font-semibold text-gray-200 mt-6 mb-3">Stored programs (Von-Neumann)</h3>
+                    <p dir="auto">The ENIAC (1945) was a denary valve computer and had no stored program. The program rather was the physical configuration of the machine using plugboards and patch cables. It therefore took days to program and had no index registers for structured data (see B-lines section). The developers realised this and began developing EDVAC (completed 1949). While working on the EDVAC John von Neumann wrote "<em>First Draft of a Report on the EDVAC</em>" (von Neumann, 1945) which describe the von-Neumann architecture of stored programs. Programs were stored in mercury delay lines which were originally developed for Radar systems. The bits were stored as acoustic sound waves in the mercury maintained by a feedback loop. The tubes were extremely temperate sensitive, expensive, slow as they were serial access and toxic because of the mercury. The difficulties are described at (Kempf, 1961).</p>
+                    
+            
+                    <h4 class="text-lg font-semibold text-gray-200 mt-4 mb-2">Williams tubes</h4>
+                    <p dir="auto">While the EDVAC was being designed the Manchester Baby was the first (proof-of-concept) computer to run a stored program. It used the Williams tubes storage invented in 1948 (Williams & Kilburn, 1949). The Williams tubes stored data inside a CRT tube. The data was stored by writing sharp or blurred dots to the screen (corresponding to 1s and 0s). When electrons collide on the CRT phosphor they displace other electrons (secondary emission) which causes a local charge that was capacitively coupled to a sensing plate. This charge only lasts for about 0.2s so a feedback circuit rewrites the charge constantly similar to modern DRAM!</p>
+            
+                    <img loading="lazy" decoding="async" width="340" height="340" alt="Data pattern of charged dots on a Williams tube CRT screen" src="williams-tube-dot-pattern.png" class="max-w-full h-auto rounded shadow-lg my-4" style="width: 250px;">
+                    <p class="text-sm text-gray-500 italic">Image from (Computer Museum UvA, n.d.)<br>The data pattern on the CRT screen. Note that you would not be able to see this since it was covered with the metal charge detector.</p>
+            
+                    <h2 class="text-2xl font-bold text-gray-100 mt-8 mb-4">Instruction design</h2>
+            
+                    <h3 class="text-xl font-semibold text-gray-200 mt-6 mb-3">Accumulator architecture</h3>
+                    <p dir="auto">The Ferranti Mark 1, Manchester Mark 1 and the Baby did not use a multiple register architecture as modern CPUs / RISC processors do. Instead, they were all accumulator-based using a single register called the accumulator to execute instructions. This greatly simplifies the computer architecture, as no multiplexing logic is needed to connect different registers to execution units such as the ALU. However it is less instruction efficient as multiple swaps to memory have to be made for calculations with multiple variables. (This is analogous to a computer with RAM but only 1 register, or a calculator)</p>
+            
+                    <h3 class="text-xl font-semibold text-gray-200 mt-6 mb-3">B-lines</h3>
+                    <p dir="auto">The Manchester Baby, Mark I and Ferranti were all stored program Von-Neumann computers. However the preceding Manchester Baby did not have index registers (ability to do run-time memory addressing i.e. load value from location <code>x</code>), which is essential for structured data operations e.g. <code>array[idx]</code>. Therefore operations that required structured data such as summing an array had to be executed with self-modifying code that would mutate the load instruction to point to the next value. This created code, that was impossible to statically analyse and extremely difficult to debug.</p>
+            
+                    <p dir="auto">To solve this problem "B-lines" (University of Manchester, 1998) were invented for the Manchester Mark 1. This was a tube that stored numbers you could add to an instruction e.g. where <code>B[1] = 6</code>,  <code>add 5 1</code> becomes <code>add 11</code>. this allowed for runtime addressing without self-modifying code being conceptually the same as <code>load rDest rIdx</code> operations. It was called the B tube to alphabetically fit in as the extended Baby had the A, C and D tubes. The Mark 1 had 2 B lines but the Ferranti had 8</p>
+            
+                    <h2 class="text-2xl font-bold text-gray-100 mt-8 mb-4">2. Emulation details</h2>
+                    <p dir="auto">The Ferranti Mark 1 used 40 bit words. Data could be stored as a 40 bit word while the instructions were 20 bit which allowed two instructions per word, The binary was little (bit)-endian because the computer was bit serial meaning that for addition it could start executing on the little bits once it received them. e.g. <code>1000</code> means 1 not 8. It also used 2's complement</p>
+            
+                    <p dir="auto" class="mt-4">Instruction format<br>10 bit address + 3 bit B-lines + 1 bit spare + 6 bit Opocode</p>
+                    
+                    <img loading="lazy" decoding="async" width="2492" height="241" alt="Ferranti Mark 1 instruction format: 10 bit address, 3 bit B-line select, 1 spare bit, 6 bit opcode" src="instruction-format.png" class="max-w-full h-auto rounded shadow-lg my-4">
+            
+                    <p dir="auto">Data was stored in main memory. This was a set of 16 Williams tubes which could store 1024 words each tube storing 64 words. However only 5-8 could be assumed available due to the difficulty of servicing (Turing, 1950, p. 45) </p>
+            
+                    <ul class="list-disc pl-5 my-4 space-y-1">
+                        <li>With this in mind my emulator uses 8 tubes in main memory which also makes it easier to fit in a webpage</li>
+                    </ul>
+            
+                    <p dir="auto"><strong>Tube variable storage</strong></p>
+                    <ul class="list-disc pl-5 my-4 space-y-1">
+                        <li>16 tubes storing 64 40-bit words for a total of 1024 words, (but only 5-8 available so I model 8)</li>
+                        <li>1 B-line tube storing 8 20-bit words</li>
+                        <li>1 C tube holding the 20-bit program counter and 20-bit instruction bit pattern</li>
+                        <li>1 M tube holding 40-bit multiplicand</li>
+                        <li>1 A tube holding the 80 bit accumulator</li>
+                    </ul>
+
+                    <p dir="auto">The computer also had a 655360 bit magnetic store (16.384k words) (Turing, 1950, p. 4) which I do not model in my emulation as it is related to machine level IO rather than program execution.</p>
+            
+                    <h3 class="text-xl font-semibold text-gray-200 mt-6 mb-3">Loading the program</h3>
+                    <p dir="auto">Programs for the Ferranti Mark 1, Manchester Mark 1 and the Baby were loaded from 5 bit punched paper tape. This was a 32 bit encoding using the ITA2 standard, to program an instruction you would input four characters (20 bits) e.g. </p>
+            
+                    <ul class="list-disc pl-5 my-4">
+                        <li><code>ld 10</code> -&gt; <code>R/T/</code> -&gt; <code>01010000000000100000</code></li>
+                    </ul>
+            
+                    <p dir="auto">Turing's programming manual encourages the user to memorize the raw teleprinter character strings for programming and to think in that way rather than a higher level translated assembly. I do not follow that tradition and instead have produced a high level assembly language that 1:1 translates into the teleprinter characters that translate into the binary strings.</p>
+            
+                    <p dir="auto" class="mt-4">A program would therefore look like</p>
+                    <pre class="bg-[#1e1e1e] p-4 rounded border border-[#333] text-sm overflow-x-auto my-4 text-gray-300"><code>ld 6 // a = 10, program to count down from 10 to 0
+sub 5 // a -= 1
+jgt_a 7 // data 2, go back -1 instructions
+add 5 // a += 1 as we count to -1
+stop // a now = 0
+data 1 // count down from 10
+data 10
+data 1</code></pre>
+            
+                    <p dir="auto">which would be typed into the teleprinter as</p>
+                    <pre class="bg-[#1e1e1e] p-4 rounded border border-[#333] text-sm overflow-x-auto my-4 text-gray-300"><code>I/T/S/TN
+U//HS/TI
+///G////
+E///////
+R///////
+E///////</code></pre>
+
+                    <p dir="auto">The punch tape from the teleprinter would then be loaded into the main memory. 2 20-bit instructions are packed into 1 40-bit word to save space</p>
+                    <pre class="bg-[#1e1e1e] p-4 rounded border border-[#333] text-sm overflow-x-auto my-4 text-gray-300"><code>0110000000000010000010100000000000100110
+1110000000000000010110100000000000101100
+0000000000000000101100000000000000000000
+1000000000000000000000000000000000000000
+0101000000000000000000000000000000000000
+1000000000000000000000000000000000000000</code></pre>
+            
+                    <h3 class="text-xl font-semibold text-gray-200 mt-6 mb-3">Notation</h3>
+                    <ul class="list-none space-y-2">
+                        <li><i>a</i>: 80 bit accumulator</li>
+                        <li class="pl-4"><i>a<sub>u</sub></i>: Upper 40 bits</li>
+                        <li class="pl-4"><i>a<sub>l</sub></i>: Lower 40 bits</li>
+                        <li><i>M</i>: Memory</li>
+                        <li><i>d</i>: Multiplier </li>
+                        <li><i>s</i>: Memory address, (the machine does not use any intermediates!)</li>
+                        <li><i>b</i>: B line address</li>
+                    </ul>
+            
+                    <h3 class="text-xl font-semibold text-gray-200 mt-6 mb-3">Instruction set (ISA)</h3>
+                    <div class="overflow-x-auto border border-[#333] rounded">
+                        <table class="w-full text-left text-sm">
+                            <thead class="bg-[#222] text-gray-200">
+                                <tr>
+                                    <th class="p-2 border-r border-[#333]">My Assembly language</th>
+                                    <th class="p-2 border-r border-[#333]">5-bit Encoding</th>
+                                    <th class="p-2 border-r border-[#333]">6-bit Machine Opcode</th>
+                                    <th class="p-2">Description</th>
+                                </tr>
+                            </thead>
+                            <tbody class="divide-y divide-[#333]">
+                                <tr><td class="p-2 border-r border-[#333]"><code>ld s, b</code></td><td class="p-2 border-r border-[#333]">(/T)</td><td class="p-2 border-r border-[#333]"><code>100000</code></td><td class="p-2">Load <i>a</i> = <i>M</i>[<i>s</i> + <i>B</i>[<i>b</i>]]</td></tr>
+                                <tr><td class="p-2 border-r border-[#333]"><code>ldn s, b</code></td><td class="p-2 border-r border-[#333]">(TF)</td><td class="p-2 border-r border-[#333]"><code>110110</code></td><td class="p-2">Load negative <i>a</i> = -<i>M</i>[<i>s</i> + <i>B</i>[<i>b</i>]]</td></tr>
+                                <tr><td class="p-2 border-r border-[#333]"><code>ld_dbl s, b</code></td><td class="p-2 border-r border-[#333]">(TK)</td><td class="p-2 border-r border-[#333]"><code>111110</code></td><td class="p-2">Load double word <i>a</i> = 2 &middot; <i>M</i>[<i>s</i> + <i>B</i>[<i>b</i>]]</td></tr>
+                                <tr><td class="p-2 border-r border-[#333]"><code>swap</code></td><td class="p-2 border-r border-[#333]">(/I)</td><td class="p-2 border-r border-[#333]"><code>001100</code></td><td class="p-2">Swap accumulator halves, <i>a<sub>u</sub>, a<sub>l</sub></i> = <i>a<sub>l</sub>, a<sub>u</sub></i></td></tr>
+                                <tr><td class="p-2 border-r border-[#333]"><code>clr</code></td><td class="p-2 border-r border-[#333]">(T:)</td><td class="p-2 border-r border-[#333]"><code>100100</code></td><td class="p-2">Clear accumulator <i>a</i> = 0</td></tr>
+                                <tr><td class="p-2 border-r border-[#333]"><code>st_u s, b</code></td><td class="p-2 border-r border-[#333]">(/E)</td><td class="p-2 border-r border-[#333]"><code>010000</code></td><td class="p-2">Store upper half <i>M</i>[<i>s</i> + <i>B</i>[<i>b</i>]] = <i>a<sub>u</sub></i></td></tr>
+                                <tr><td class="p-2 border-r border-[#333]"><code>st_l s, b</code></td><td class="p-2 border-r border-[#333]">(/S)</td><td class="p-2 border-r border-[#333]"><code>010100</code></td><td class="p-2">Store lower half <i>M</i>[<i>s</i> + <i>B</i>[<i>b</i>]] = <i>a<sub>l</sub></i></td></tr>
+                                <tr><td class="p-2 border-r border-[#333]"><code>st_l_clr s, b</code></td><td class="p-2 border-r border-[#333]">(TA)</td><td class="p-2 border-r border-[#333]"><code>111000</code></td><td class="p-2">Store lower half <i>M</i>[<i>s</i> + <i>B</i>[<i>b</i>]] = <i>a<sub>l</sub></i>, <i>a</i> = 0</td></tr>
+                                <tr><td class="p-2 border-r border-[#333]"><code>st_or s, b</code></td><td class="p-2 border-r border-[#333]">(TS)</td><td class="p-2 border-r border-[#333]"><code>110100</code></td><td class="p-2">Store OR <i>M</i>[<i>s</i> + <i>B</i>[<i>b</i>]] = <i>M</i>[<i>s</i> + <i>B</i>[<i>b</i>]] | <i>a<sub>l</sub></i></td></tr>
+                                <tr><td class="p-2 border-r border-[#333]"><code>st_u_pop s, b</code></td><td class="p-2 border-r border-[#333]">(/A)</td><td class="p-2 border-r border-[#333]"><code>011000</code></td><td class="p-2">Pop <i>a<sub>u</sub></i> to memory and zero <i>M</i>[<i>s</i> + <i>B</i>[<i>b</i>]] = <i>a<sub>u</sub></i>, <i>a</i> = <i>a</i> (mod 2<sup>40</sup>)</td></tr>
+                                <tr><td class="p-2 border-r border-[#333]"><code>st_l_sftd s, b</code></td><td class="p-2 border-r border-[#333]">(/U)</td><td class="p-2 border-r border-[#333]"><code>011100</code></td><td class="p-2">Store lower then shift down, <i>M</i>[<i>s</i> + <i>B</i>[<i>b</i>]] = <i>a<sub>l</sub></i>, <i>a</i> &gg; 40</td></tr>
+                                <tr><td class="p-2 border-r border-[#333]"><code>add s, b</code></td><td class="p-2 border-r border-[#333]">(TI)</td><td class="p-2 border-r border-[#333]"><code>101100</code></td><td class="p-2">Add <i>a</i> += <i>M</i>[<i>s</i> + <i>B</i>[<i>b</i>]]</td></tr>
+                                <tr><td class="p-2 border-r border-[#333]"><code>add_u s, b</code></td><td class="p-2 border-r border-[#333]">(/J)</td><td class="p-2 border-r border-[#333]"><code>011010</code></td><td class="p-2">Add to upper; <i>a</i> += <i>M</i>[<i>s</i> + <i>B</i>[<i>b</i>]] &ll; 40</td></tr>
+                                <tr><td class="p-2 border-r border-[#333]"><code>sub s, b</code></td><td class="p-2 border-r border-[#333]">(TN)</td><td class="p-2 border-r border-[#333]"><code>100110</code></td><td class="p-2">Subtract <i>a</i> -= <i>M</i>[<i>s</i> + <i>B</i>[<i>b</i>]]</td></tr>
+                                <tr><td class="p-2 border-r border-[#333]"><code>norm s, b</code></td><td class="p-2 border-r border-[#333]">(/(a))</td><td class="p-2 border-r border-[#333]"><code>001000</code></td><td class="p-2">Position of MSB: <i>a<sub>u</sub></i> = &lfloor; log<sub>2</sub>(<i>M</i>[<i>s</i> + <i>B</i>[<i>b</i>]]) &rfloor;</td></tr>
+                                <tr><td class="p-2 border-r border-[#333]"><code>popcnt s, b</code></td><td class="p-2 border-r border-[#333]">(/R)</td><td class="p-2 border-r border-[#333]"><code>001010</code></td><td class="p-2"><i>a</i> += count_set_bits(<i>M</i>[<i>s</i> + <i>B</i>[<i>b</i>]]) &ll; 40</td></tr>
+                                <tr><td class="p-2 border-r border-[#333]"><code>ld_mul s, b</code></td><td class="p-2 border-r border-[#333]">(/C)</td><td class="p-2 border-r border-[#333]"><code>001110</code></td><td class="p-2">Load multiplier <i>d</i> = <i>M</i>[<i>s</i> + <i>B</i>[<i>b</i>]]</td></tr>
+                                <tr><td class="p-2 border-r border-[#333]"><code>add_prod s, b</code></td><td class="p-2 border-r border-[#333]">(/N)</td><td class="p-2 border-r border-[#333]"><code>000110</code></td><td class="p-2">Add product <i>a</i> += <i>d</i> &middot; <i>M</i>[<i>s</i> + <i>B</i>[<i>b</i>]]</td></tr>
+                                <tr><td class="p-2 border-r border-[#333]"><code>sub_prod s, b</code></td><td class="p-2 border-r border-[#333]">(/1/4)</td><td class="p-2 border-r border-[#333]"><code>000010</code></td><td class="p-2">Subtract product <i>a</i> -= <i>d</i> &middot; <i>M</i>[<i>s</i> + <i>B</i>[<i>b</i>]]</td></tr>
+                                <tr><td class="p-2 border-r border-[#333]"><code>and s, b</code></td><td class="p-2 border-r border-[#333]">(TR)</td><td class="p-2 border-r border-[#333]"><code>101010</code></td><td class="p-2">Bitwise AND <i>a</i> &= <i>M</i>[<i>s</i> + <i>B</i>[<i>b</i>]]</td></tr>
+                                <tr><td class="p-2 border-r border-[#333]"><code>or s, b</code></td><td class="p-2 border-r border-[#333]">(TD)</td><td class="p-2 border-r border-[#333]"><code>110010</code></td><td class="p-2">Bitwise OR <i>a</i> |= <i>M</i>[<i>s</i> + <i>B</i>[<i>b</i>]]</td></tr>
+                                <tr><td class="p-2 border-r border-[#333]"><code>neq s, b</code></td><td class="p-2 border-r border-[#333]">(TJ)</td><td class="p-2 border-r border-[#333]"><code>111010</code></td><td class="p-2">Bitwise XOR <i>a</i> &oplus; <i>M</i>[<i>s</i> + <i>B</i>[<i>b</i>]]</td></tr>
+                                <tr><td class="p-2 border-r border-[#333]"><code>jmp_a s, b</code></td><td class="p-2 border-r border-[#333]">(/P)</td><td class="p-2 border-r border-[#333]"><code>001101</code></td><td class="p-2">Jump (Absolute) <i>C</i> = <i>M</i>[<i>s</i> + <i>B</i>[<i>b</i>]]</td></tr>
+                                <tr><td class="p-2 border-r border-[#333]"><code>jmp_r s, b</code></td><td class="p-2 border-r border-[#333]">(/Q)</td><td class="p-2 border-r border-[#333]"><code>011101</code></td><td class="p-2">Jump (Relative) <i>p</i> += <i>M</i>[<i>s</i> + <i>B</i>[<i>b</i>]]</td></tr>
+                                <tr><td class="p-2 border-r border-[#333]"><code>jgt_a s</code></td><td class="p-2 border-r border-[#333]">(/H)</td><td class="p-2 border-r border-[#333]"><code>000101</code></td><td class="p-2">Jump to <i>s</i> if <i>a</i> &ge; 0</td></tr>
+                                <tr><td class="p-2 border-r border-[#333]"><code>jgt_r s</code></td><td class="p-2 border-r border-[#333]">(/M)</td><td class="p-2 border-r border-[#333]"><code>000111</code></td><td class="p-2">Jump relative <i>p</i> += <i>s</i> if <i>a</i> &ge; 0</td></tr>
+                                <tr><td class="p-2 border-r border-[#333]"><code>jmp_a_b s</code></td><td class="p-2 border-r border-[#333]">(/T)</td><td class="p-2 border-r border-[#333]"><code>000001</code></td><td class="p-2">Jump to <i>s</i> if <i>b_sign</i> = 0</td></tr>
+                                <tr><td class="p-2 border-r border-[#333]"><code>jmp_r_b s</code></td><td class="p-2 border-r border-[#333]">(/O)</td><td class="p-2 border-r border-[#333]"><code>000011</code></td><td class="p-2">Jump relative <i>p</i> += <i>s</i> if <i>b_sign</i> = 0</td></tr>
+                                <tr><td class="p-2 border-r border-[#333]"><code>stop</code></td><td class="p-2 border-r border-[#333]">(/G)</td><td class="p-2 border-r border-[#333]"><code>001011</code></td><td class="p-2">Halt program</td></tr>
+                                <tr><td class="p-2 border-r border-[#333]"><code>set_b s, b</code></td><td class="p-2 border-r border-[#333]">(TT)</td><td class="p-2 border-r border-[#333]"><code>100001</code></td><td class="p-2">Set B-line <i>B</i>[<i>b</i>] = <i>M</i>[<i>s</i>]</td></tr>
+                                <tr><td class="p-2 border-r border-[#333]"><code>sub_b s, b</code></td><td class="p-2 border-r border-[#333]">(TL)</td><td class="p-2 border-r border-[#333]"><code>101001</code></td><td class="p-2">Subtract from B-line <i>B</i>[<i>b</i>] -= <i>M</i>[<i>s</i>]</td></tr>
+                                <tr><td class="p-2 border-r border-[#333]"><code>store_b s, b</code></td><td class="p-2 border-r border-[#333]">(TZ)</td><td class="p-2 border-r border-[#333]"><code>110001</code></td><td class="p-2">Write B-line to memory <i>M</i>[<i>s</i>] = <i>B</i>[<i>b</i>]</td></tr>
+                            </tbody>
+                        </table>
+                    </div>
+                    
+                    <p dir="auto" class="mt-6">When the machine was initially initialized, all the bits in the Williams tubes would be random. This meant that unless your program specified an explicit halt, if it ran into out-of-bounds memory, it would just execute random instructions, which is very difficult to debug, as it wouldn't throw an error. To mitigate this, I have made it easier for the user by adding the abstraction of all memory being initialized to zero, which could be done on a real machine if you wrote a bootstrap program. I also block the von Neumann aspect writing anything other than data to memory because accidentally doing this makes the machine incredibly difficult to debug as referencing a wrong memory location doesn't throw an error but rather results in garbage in garbage out (GIGO) execution. Code mutation is not needed in this machine due to the B lines</p>
+
+                    <p dir="auto" class="mt-6">I abstract the emulation of a control panel and instead in my emulation just show the raw contents of the B tubes. This removes unnecessary complexity to end users programming the machine as I am more focused on the programming style than the hardware interface</p>
+
+                    <p dir="auto" class="mt-6">To use the emulation click `run` or press Ctrl + Enter. Press reset (right of run) to reload the program and run again.</p>
+                    
+                    <h2 class="text-2xl font-bold text-gray-100 mt-8 mb-4">References</h2>
+                    <ul class="list-disc pl-5 space-y-2 text-sm text-gray-400">
+                        <li>Computer Museum UvA. (n.d.). <em>The Williams-tube electrostatic storage device</em>. Universiteit van Amsterdam. <a href="https://ub.fnwi.uva.nl/computermuseum/williamstube.html" class="text-blue-400 hover:underline">https://ub.fnwi.uva.nl/computermuseum/williamstube.html</a></li>
+                        <li>Kempf, K. (1961). <em>Historical Monograph: Electronic Computers within the Ordnance Corps</em>. U.S. Army Ordnance Corps. <a href="https://ftp.arl.mil/~mike/comphist/61ordnance/chap3.html" class="text-blue-400 hover:underline">https://ftp.arl.mil/~mike/comphist/61ordnance/chap3.html</a></li>
+                        <li>Turing, A. M. (1950). <em>Programmers' Handbook for the Manchester Electronic Computer Mark II</em>. University of Manchester. <a href="https://curation.cs.manchester.ac.uk/computer50/www.computer50.org/kgill/mark1/RobertTau/turing.pdf" class="text-blue-400 hover:underline">https://curation.cs.manchester.ac.uk/computer50/www.computer50.org/kgill/mark1/RobertTau/turing.pdf</a></li>
+                        <li>University of Manchester. (1998). <em>The Mark 1</em>. 50th Anniversary of the Manchester Baby. <a href="https://curation.cs.manchester.ac.uk/computer50/www.computer50.org/mark1/notes.html" class="text-blue-400 hover:underline">https://curation.cs.manchester.ac.uk/computer50/www.computer50.org/mark1/notes.html</a></li>
+                        <li>von Neumann, J. (1945). <em>First Draft of a Report on the EDVAC</em>. Moore School of Electrical Engineering, University of Pennsylvania. <a href="https://web.mit.edu/sts.035/www/PDFs/edvac.pdf" class="text-blue-400 hover:underline">https://web.mit.edu/sts.035/www/PDFs/edvac.pdf</a></li>
+                        <li>Williams, F. C., & Kilburn, T. (1949). A storage system for use with binary-digital computing machines. <em>Proceedings of the IEE - Part III: Radio and Communication Engineering</em>, 96(40), 81–100.</li>
+                        <li>Doornbusch, P. (2017). Early computer music experiments in Australia and England. <em>Organised Sound</em>, <em>22</em>(2), 297–307. <a href="https://doi.org/10.1017/S1355771817000206" class="text-blue-400 hover:underline">https://doi.org/10.1017/S1355771817000206</a></li>
+                    </ul>
+                </div>
+            </section>
+            </div>
+
+        <div class="w-[450px] border-l border-[#333] bg-[#0c0c0c] flex flex-col z-20">
+            <div class="px-3 py-1 bg-[#1a1a1a] border-b border-[#333] text-[10px] font-bold text-gray-400 uppercase tracking-wider flex justify-between">
+                <span>System Log</span>
+                <span id="statusIndicator" class="text-yellow-500">PAUSED</span>
+            </div>
+            <div class="flex-1 p-3 font-mono text-xs overflow-y-auto whitespace-pre-wrap custom-scrollbar bg-[#0c0c0c]" id="consoleLog"> </div>
+        </div>
+    </main>
+</div>
+
+<script>
+'use strict';
+(function () {
+
+// ==========================================
+// 0. CONSTANTS
+// ==========================================
+
+const MLEN = 1024;              // words of electronic store
+const TUBE_COUNT = 8;           // Williams tubes shown for main memory
+const WORDS_PER_TUBE = 64;
+const BITS_PER_COL = 20;
+const TAU = Math.PI * 2;
+
+const MIN_HZ = 0.1, MAX_HZ = 100000, DEFAULT_HZ = 10;
+const FRAME_BUDGET_MS = 8;      // step work allowed per animation frame
+const MAX_LOG_LINES = 2000;     // console log is trimmed to this many lines
+
+const OPCODES = {
+    ld: '100000', ldn: '110110', ld_dbl: '111110', swap: '001100', clr: '100100',
+    st_u: '010000', st_l: '010100', st_l_clr: '111000', st_or: '110100',
+    st_u_pop: '011000', st_l_sftd: '011100', add: '101100', add_u: '011010',
+    sub: '100110', norm: '001000', popcnt: '001010', ld_mul: '001110',
+    add_prod: '000110', sub_prod: '000010', and: '101010', or: '110010',
+    neq: '111010', jmp_a: '001101', jmp_r: '011101', jgt_a: '000101',
+    jgt_r: '000111', jmp_a_b: '000001', jmp_r_b: '000011', stop: '001011',
+    set_b: '100001', sub_b: '101001', store_b: '110001'
+};
+
+const CHAR_MAP = {
+    '00000': '/', '10000': 'E', '01000': '@', '11000': 'A',
+    '00100': ':', '10100': 'S', '01100': 'I', '11100': 'U',
+    '00010': '¼', '10010': 'D', '01010': 'R', '11010': 'J',
+    '00110': 'N', '10110': 'F', '01110': 'C', '11110': 'K',
+    '00001': 'T', '10001': 'Z', '01001': 'L', '11001': 'W',
+    '00101': 'H', '10101': 'Y', '01101': 'P', '11101': 'Q',
+    '00011': 'O', '10011': 'B', '01011': 'G', '11011': '"',
+    '00111': 'M', '10111': 'X', '01111': 'V', '11111': '£'
+};
+
+// Longest-first so the alternation never settles for a prefix.
+const KEYWORD_RE = new RegExp(
+    '\\b(' + ['data'].concat(Object.keys(OPCODES)).sort(function (a, b) { return b.length - a.length; }).join('|') + ')\\b',
+    'g'
+);
+
+// rows/columns of the dot matrix painted onto each kind of tube
+const LAYOUTS = {
+    memory:  { rows: 64, cols: 2 },
+    acc:     { rows: 8,  cols: 1 },
+    control: { rows: 8,  cols: 1 },
+    simple:  { rows: 16, cols: 2 },
+    m:       { rows: 8,  cols: 1 }
+};
+
+const ZERO_40 = '0'.repeat(40);
+
+// ==========================================
+// 1. DOM
+// ==========================================
+
+const $ = (id) => document.getElementById(id);
+
+const el = {
+    code: $('codeInput'), highlight: $('highlightLayer'), lineNumbers: $('lineNumbers'),
+    binary: $('binaryOutput'), teleprinter: $('teleprinterOutput'), console: $('consoleLog'),
+    status: $('statusIndicator'), clock: $('clockSpeed'),
+    btnRun: $('btnRun'), btnStep: $('btnStep'), btnReset: $('btnReset'),
+    textRun: $('textRun'), iconPlay: $('iconPlay'), iconPause: $('iconPause')
+};
+
+function setStatus(text, className) {
+    el.status.textContent = text;
+    el.status.className = className;
+}
+
+// ==========================================
+// 2. UTILS & TRANSLATION
+// ==========================================
+
+// The machine is bit-serial and little-bit-endian, so every word is emitted
+// least-significant bit first.
+function intToBinaryReverse(n, bits) {
+    let bn = typeof n === 'bigint' ? n : BigInt(n);
+    if (bn < 0n) bn += 1n << BigInt(bits);
+    let s = bn.toString(2);
+    if (s.length > bits) s = s.slice(-bits);
+    let out = '';
+    for (let i = s.length - 1; i >= 0; i--) out += s[i];
+    return out.padEnd(bits, '0');
+}
+
+function popcntBigInt(x) {
+    if (x < 0n) throw new Error('popcnt undefined for negative values');
+    let count = 0n;
+    while (x !== 0n) { x &= x - 1n; count++; }
+    return count;
+}
+
+function binToChar(words) {
+    const out = [];
+    for (const word of words) {
+        const safe = word.padEnd(40, '0');
+        let res = '';
+        for (let i = 0; i < 40; i += 5) res += CHAR_MAP[safe.slice(i, i + 5)] || '?';
+        out.push(res);
+    }
+    return out;
+}
+
+function programToBinary(program) {
+    const words = [];
+    for (const instr of program) {
+        if (instr.op === 'data') {
+            words.push(intToBinaryReverse(BigInt(instr.value % 2 ** 40), 40));
+        } else {
+            words.push(
+                intToBinaryReverse(instr.s ?? 0, 10) +
+                intToBinaryReverse(instr.b ?? 0, 3) +
+                '0' +                                   // spare bit
+                (OPCODES[instr.op] || '000000')
+            );
+        }
+    }
+
+    // Two 20-bit instructions are packed into one 40-bit line to save store.
+    const packed = [];
+    for (let i = 0; i < words.length; i++) {
+        if (words[i].length !== 20) { packed.push(words[i]); continue; }
+        if (words[i + 1] && words[i + 1].length === 20) {
+            packed.push(words[i] + words[i + 1]);
+            i++;
+        } else {
+            packed.push(words[i] + '0'.repeat(20));
+        }
+    }
+    return packed;
+}
+
+// ==========================================
+// 3. PARSER
+// ==========================================
+
+function parse(source) {
+    const program = [];
+
+    const parseNum = (token, lineNo, paramName) => {
+        if (token === undefined) throw new Error('Line ' + lineNo + ": Missing '" + paramName + "'");
+        const num = Number(token);
+        if (isNaN(num)) throw new Error('Line ' + lineNo + ": Invalid number '" + token + "'");
+        return num;
+    };
+
+    source.split('\n').forEach((line, lineNo) => {
+        const clean = line.split('//')[0].trim();
+        if (!clean) { program.push({ op: 'data', value: 0 }); return; }
+
+        const tokens = clean.split(/\s+/);
+        const op = tokens[0];
+
+        switch (op) {
+            case 'data':
+                program.push({ op: 'data', value: parseNum(tokens[1], lineNo, 'value') });
+                break;
+            case 'stop': case 'clr':
+                program.push({ op: op });
+                break;
+            case 'set_b': case 'sub_b': case 'store_b':
+                program.push({
+                    op: op,
+                    s: parseNum(tokens[1], lineNo, 's'),
+                    b: parseNum(tokens[2], lineNo, 'b')
+                });
+                break;
+            case 'swap': case 'norm': {
+                const instr = { op: op };
+                if (tokens[1]) instr.s = parseNum(tokens[1], lineNo, 's');
+                if (tokens[2]) instr.b = parseNum(tokens[2], lineNo, 'b');
+                program.push(instr);
+                break;
+            }
+            default: {
+                const instr = { op: op, s: parseNum(tokens[1], lineNo, 's') };
+                if (tokens[2]) instr.b = parseNum(tokens[2], lineNo, 'b');
+                program.push(instr);
+                break;
+            }
+        }
+    });
+
+    return program;
+}
+
+// ==========================================
+// 4. STATE MACHINE
+// ==========================================
+
+// The store is modelled as zeroed at power-on (see the report), so the tubes
+// show their full grid of unset bits at rest instead of an empty face.
+function zeroedStore() {
+    const M = new Array(MLEN);
+    for (let i = 0; i < MLEN; i++) M[i] = { op: 'data', value: 0 };
+    return M;
+}
+
+function freshMachine() {
+    return {
+        active: false, running: false,
+        pc: 0, a: 0n, m: 0,
+        B: new Array(8).fill(0),
+        M: zeroedStore(),
+        steps: 0
+    };
+}
+
+let machine = freshMachine();
+
+// Re-encoding all 1024 words is the most expensive part of a redraw, so it is
+// only redone when a store instruction has actually touched memory.
+let memBinary = [];
+let memDirty = true;
+
+function writeMem(addr, value) {
+    machine.M[addr] = { op: 'data', value: value };
+    memDirty = true;
+}
+
+// -- console log (buffered; the DOM is only touched once per frame) --
+
+const logLines = [];
+let logPending = [];
+
+function log(html) { logPending.push(html); }
+
+function flushLog() {
+    if (!logPending.length) return;
+
+    if (logPending.length > MAX_LOG_LINES) {
+        logPending = logPending.slice(-MAX_LOG_LINES);
+    }
+
+    if (logLines.length + logPending.length > MAX_LOG_LINES) {
+        logLines.push.apply(logLines, logPending);
+        logLines.splice(0, logLines.length - MAX_LOG_LINES);
+        el.console.innerHTML = logLines.join('\n') + '\n';
+    } else {
+        logLines.push.apply(logLines, logPending);
+        el.console.insertAdjacentHTML('beforeend', logPending.join('\n') + '\n');
+    }
+
+    logPending = [];
+    el.console.scrollTop = el.console.scrollHeight;
+}
+
+function clearLog() {
+    logLines.length = 0;
+    logPending = [];
+    el.console.innerHTML = '';
+}
+
+function initMachine() {
+    try {
+        const parsed = parse(el.code.value);
+
+        const binaryProg = programToBinary(parsed);
+        el.binary.textContent = '[\n' + binaryProg.map((s) => "  '" + s + "'").join(',\n') + '\n]';
+        el.teleprinter.textContent = '[\n' + binToChar(binaryProg).map((s) => "  '" + s + "'").join(',\n') + '\n]';
+
+        machine = freshMachine();
+        machine.M = parsed.concat(
+            Array.from({ length: MLEN - parsed.length }, () => ({ op: 'data', value: 0 }))
+        );
+        machine.active = true;
+        memDirty = true;
+
+        clearLog();
+        log('Program Loaded from Editor.');
+        renderMachineState();
+        return true;
+    } catch (e) {
+        log('<span class="text-red-500">Parse Error: ' + e.message + '</span>');
+        flushLog();
+        return false;
+    }
+}
+
+function executeStep() {
+    // Auto load: the editor invalidates the machine on every keystroke.
+    if (!machine.active && !initMachine()) return false;
+
+    const instr = machine.M[machine.pc];
+    if (!instr || instr.op === 'stop') {
+        stopRun();
+        log('<span class="text-yellow-500">Program Halted.</span>');
+        return false;
+    }
+
+    const s = instr.s ?? 0;
+    const b = instr.b ?? 0;
+    const addr = (s + (machine.B[b % 8] || 0)) % MLEN;
+    const M = machine.M;
+    let a = machine.a;
+
+    switch (instr.op) {
+        case 'ld':         a = BigInt(M[addr].value); break;
+        case 'ldn':        a = -BigInt(M[addr].value); break;
+        case 'ld_dbl':     a = 2n * BigInt(M[addr].value); break;
+        case 'swap':       a = (a << 40n) + (a % 2n ** 40n); break;
+        case 'clr':        a = 0n; break;
+        case 'st_u':       writeMem(addr, Number(a >> 40n)); break;
+        case 'st_l':       writeMem(addr, Number(a % 2n ** 40n)); break;
+        case 'st_l_clr':   writeMem(addr, Number(a % 2n ** 40n)); a = 0n; break;
+        case 'st_or':      writeMem(addr, M[addr].value | Number(a % 2n ** 40n)); break;
+        case 'st_u_pop':   writeMem(addr, Number(a >> 40n)); a = a % 2n ** 40n; break;
+        case 'st_l_sftd':  writeMem(addr, Number(a % 2n ** 40n)); a = a >> 40n; break;
+        case 'add':        a += BigInt(M[addr].value); break;
+        case 'add_u':      a += BigInt(M[addr].value) << 40n; break;
+        case 'sub':        a -= BigInt(M[addr].value); break;
+        case 'norm':       a = BigInt(Math.floor(Math.log2(Number(M[addr].value)))); break;
+        case 'popcnt':     a = popcntBigInt(BigInt(M[addr].value)) << 40n; break;
+        case 'ld_mul':     machine.m = M[addr].value; break;
+        case 'add_prod':   a += BigInt(machine.m * M[addr].value); break;
+        case 'sub_prod':   a -= BigInt(machine.m * M[addr].value); break;
+        case 'and':        a &= BigInt(M[addr].value); break;
+        case 'or':         a |= BigInt(M[addr].value); break;
+        case 'neq':        a ^= BigInt(M[addr].value); break;
+        case 'jmp_a':      machine.pc = Number(M[addr].value) % MLEN - 1; break;
+        case 'jmp_r':      machine.pc += Number(M[addr].value) % MLEN - 1; break;
+        case 'jgt_a':      if (a >= 0n) machine.pc = Number(M[addr].value) % MLEN - 1; break;
+        case 'jgt_r':      if (a >= 0n) machine.pc += Number(M[addr].value) % MLEN - 1; break;
+        case 'jmp_a_b':    if (machine.B[b % 8] >= 0) machine.pc = Number(M[addr].value) % MLEN - 1; break;
+        case 'jmp_r_b':    if (machine.B[b % 8] >= 0) machine.pc += Number(M[addr].value) % MLEN - 1; break;
+        case 'set_b':      machine.B[b % 8] = M[s % MLEN].value % 2 ** 40; break;
+        case 'sub_b':      machine.B[b % 8] -= M[s % MLEN].value % 2 ** 40; break;
+        case 'store_b':    writeMem(s % MLEN, machine.B[b % 8]); break;
+    }
+
+    machine.a = a;
+    machine.steps++;
+    machine.pc = (machine.pc + 1) % MLEN;
+
+    let instrStr = '<span class="log-key">op:</span> <span class="log-val-str">\'' + instr.op + '\'</span>';
+    if (instr.s !== undefined) {
+        instrStr += ', <span class="log-key">s:</span> <span class="log-val-num">' + instr.s + '</span>';
+    }
+    log('pc=<span class="log-val-num">' + machine.pc + '</span> a=<span class="log-val-num">' + machine.a + 'n</span> instr={' + instrStr + '}');
+
+    return true;
+}
+
+function stepInstruction() {
+    try {
+        return executeStep();
+    } catch (e) {
+        stopRun();
+        log('<span class="text-red-500">Runtime Error at pc=' + machine.pc + ': ' + e.message + '</span>');
+        return false;
+    }
+}
+
+// ==========================================
+// 5. CLOCK
+// ==========================================
+//
+// Steps are driven from requestAnimationFrame rather than setInterval, which
+// clamps to ~4ms and so capped the machine at ~250Hz however high the dial was
+// set. Each frame earns credit for the wall-clock time that passed at the
+// *current* clock setting, so editing the Hz field takes effect immediately,
+// and the tubes are repainted once per frame instead of once per step.
+
+let rafId = null;
+let lastFrame = 0;
+let stepCredit = 0;
+
+function clockHz() {
+    const v = parseFloat(el.clock.value);
+    if (!Number.isFinite(v) || v <= 0) return DEFAULT_HZ;
+    return Math.min(Math.max(v, MIN_HZ), MAX_HZ);
+}
+
+function render() {
+    renderMachineState();
+    flushLog();
+}
+
+function frame(now) {
+    if (!machine.running) { rafId = null; render(); return; }
+    rafId = requestAnimationFrame(frame);
+
+    let dt = now - lastFrame;
+    lastFrame = now;
+    if (!(dt > 0)) dt = 0;
+    if (dt > 250) dt = 250;            // don't stampede after a background tab
+
+    stepCredit += (dt / 1000) * clockHz();
+
+    const deadline = performance.now() + FRAME_BUDGET_MS;
+    let stepped = false;
+
+    while (stepCredit >= 1) {
+        stepCredit--;
+        stepped = true;
+        if (!stepInstruction()) break;
+        if (performance.now() >= deadline) {
+            stepCredit = 0;            // machine is saturated; drop the backlog
+            break;
+        }
+    }
+
+    if (stepped) render();
+}
+
+function startRun() {
+    if (!machine.active && !initMachine()) { flushLog(); return; }
+
+    machine.running = true;
+    el.textRun.textContent = 'Pause';
+    el.iconPlay.hidden = true;
+    el.iconPause.hidden = false;
+    el.btnRun.classList.remove('bg-green-800', 'hover:bg-green-700', 'border-green-600');
+    el.btnRun.classList.add('bg-yellow-800', 'hover:bg-yellow-700', 'border-yellow-600');
+    setStatus('RUNNING', 'text-green-500 animate-pulse');
+
+    stepCredit = 1;                    // fire the first instruction immediately
+    lastFrame = performance.now();
+    if (rafId === null) rafId = requestAnimationFrame(frame);
+}
+
+function stopRun() {
+    machine.running = false;
+    if (rafId !== null) { cancelAnimationFrame(rafId); rafId = null; }
+    stepCredit = 0;
+
+    el.textRun.textContent = 'Run';
+    el.iconPlay.hidden = false;
+    el.iconPause.hidden = true;
+    el.btnRun.classList.add('bg-green-800', 'hover:bg-green-700', 'border-green-600');
+    el.btnRun.classList.remove('bg-yellow-800', 'hover:bg-yellow-700', 'border-yellow-600');
+    setStatus('PAUSED', 'text-yellow-500');
+}
+
+function toggleRun() {
+    if (machine.running) stopRun(); else startRun();
+}
+
+function stepOnce() {
+    stopRun();
+    stepInstruction();
+    render();
+    setStatus('STEPPED', 'text-blue-400');
+}
+
+function resetMachine() {
+    stopRun();
+    machine = freshMachine();
+    memDirty = true;
+    clearLog();
+    setStatus('IDLE', 'text-gray-600');
+    drawRestState();
+    log('Machine Reset.');
+    flushLog();
+}
+
+// ==========================================
+// 6. VISUALISATION
+// ==========================================
+
+function drawWilliamsTube(canvasId, type, data) {
+    const canvas = $(canvasId);
+    if (!canvas) return;
+
+    const ctx = canvas.getContext('2d');
+    const w = canvas.width, h = canvas.height;
+    const layout = LAYOUTS[type];
+    const rows = layout.rows, cols = layout.cols;
+
+    ctx.fillStyle = '#000';
+    ctx.beginPath();
+    ctx.arc(w / 2, h / 2, w / 2, 0, TAU);
+    ctx.fill();
+
+    // Generous margin so the outer rows are not clipped by the tube face.
+    const margin = w * 0.15;
+    const usableW = w - margin * 2;
+    const usableH = h - margin * 2;
+    const colGap = cols > 1 ? usableW * 0.1 : 0;
+    const colW = (usableW - colGap * (cols - 1)) / cols;
+    const groupGap = colW * 0.03;                       // 20 bits split into 4 groups of 5
+    const bitStepX = (colW - 3 * groupGap) / BITS_PER_COL;
+    const rowStepY = usableH / rows;
+    // Fraction of the dot pitch each bit fills. Higher reads denser; much
+    // above 0.8 the dots merge into solid bars and you lose the bit grid.
+    const DOT_FILL = 0.8;
+    const radius = Math.min(bitStepX, rowStepY) * DOT_FILL / 2;
+
+    // Each dot is filled on its own. Batching the unset bits into one Path2D
+    // was measured slower here (Path2D build cost outweighs the saved fills)
+    // and perturbed the antialiasing, so the original per-dot draw stands.
+    function dot(col, bit, row, ch) {
+        if (!ch) return;
+        const x = margin + col * (colW + colGap) + bit * bitStepX + ((bit / 5) | 0) * groupGap + bitStepX / 2;
+        const y = margin + row * rowStepY + rowStepY / 2;
+
+        ctx.beginPath();
+        if (ch === '1') {
+            ctx.fillStyle = '#4ade80';
+            ctx.shadowColor = '#22c55e';
+            ctx.shadowBlur = 4;
+        } else {
+            ctx.fillStyle = '#14532d';
+            ctx.shadowBlur = 0;
+        }
+        ctx.arc(x, y, radius, 0, TAU);
+        ctx.fill();
+    }
+
+    if (type === 'memory') {
+        for (let i = 0; i < data.length; i++) {
+            const word = data[i];
+            const col = i < 32 ? 0 : 1;
+            const baseRow = (i % 32) * 2;
+            for (let b = 0; b < 20; b++) dot(col, b, baseRow, word[b]);
+            for (let b = 0; b < 20; b++) dot(col, b, baseRow + 1, word[20 + b]);
+        }
+    } else if (type === 'acc') {
+        const bits = data[0] || '';
+        for (let r = 0; r < 4; r++) {
+            for (let b = 0; b < 20; b++) dot(0, b, r + 2, bits[r * 20 + b]);
+        }
+    } else if (type === 'control') {
+        for (let i = 0; i < data.length; i++) {
+            for (let b = 0; b < 20; b++) dot(0, b, i + 3, data[i][b]);
+        }
+    } else if (type === 'simple') {
+        for (let i = 0; i < data.length; i++) {
+            const word = data[i];
+            const col = i < 4 ? 0 : 1;
+            const baseRow = (i % 4) * 2;
+            for (let b = 0; b < 20; b++) dot(col, b, baseRow + 4, word[b]);
+            for (let b = 0; b < 20; b++) dot(col, b, baseRow + 5, word[20 + b]);
+        }
+    } else if (type === 'm') {
+        const bits = data[0] || '';
+        for (let b = 0; b < 20; b++) dot(0, b, 3, bits[b]);
+        for (let b = 0; b < 20; b++) dot(0, b, 4, bits[20 + b]);
+    }
+
+    ctx.shadowBlur = 0;
+}
+
+// Repainting a tube costs thousands of arcs, so skip any whose bits are
+// unchanged since the last frame.
+const drawn = Object.create(null);
+
+function drawTube(id, type, data) {
+    const key = data.join('|');
+    if (drawn[id] === key) return;
+    drawn[id] = key;
+    drawWilliamsTube(id, type, data);
+}
+
+function renderMachineState() {
+    if (memDirty) {
+        memBinary = programToBinary(machine.M);
+        memDirty = false;
+        for (let i = 0; i < TUBE_COUNT; i++) {
+            drawTube('memTube_' + i, 'memory',
+                memBinary.slice(i * WORDS_PER_TUBE, (i + 1) * WORDS_PER_TUBE));
+        }
+    }
+
+    drawTube('accTube', 'acc', [intToBinaryReverse(machine.a, 80)]);
+
+    const current = machine.M[machine.pc];
+    const currentBinary = current ? programToBinary([current])[0] : ZERO_40;
+    drawTube('pcTube', 'control', [intToBinaryReverse(machine.pc, 20), currentBinary.slice(0, 20)]);
+
+    drawTube('bTube', 'simple', machine.B.map((v) => intToBinaryReverse(v, 40)));
+    drawTube('mTube', 'm', [intToBinaryReverse(machine.m, 40)]);
+}
+
+function drawRestState() {
+    for (const id in drawn) delete drawn[id];
+    memDirty = true;
+    renderMachineState();
+}
+
+// ==========================================
+// 7. EDITOR
+// ==========================================
+
+const escapeHtml = (s) => s.replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;');
+
+function syncScroll() {
+    const top = el.code.scrollTop;
+    const left = el.code.scrollLeft;
+    el.highlight.scrollTop = top;
+    el.highlight.scrollLeft = left;
+    el.lineNumbers.scrollTop = top;
+}
+
+function updateEditor() {
+    const text = el.code.value;
+    const lines = text.split('\n');
+
+    let numbers = '';
+    for (let i = 0; i < lines.length; i++) numbers += '<div>' + i + '</div>';
+    el.lineNumbers.innerHTML = numbers;
+
+    const html = lines.map((line) => {
+        const commentIdx = line.indexOf('//');
+        const code = commentIdx === -1 ? line : line.slice(0, commentIdx);
+        const comment = commentIdx === -1 ? '' : line.slice(commentIdx);
+
+        let out = escapeHtml(code)
+            .replace(KEYWORD_RE, '<span class="token-keyword">$1</span>')
+            .replace(/\b(\d+)\b/g, '<span class="token-number">$1</span>');
+
+        if (comment) out += '<span class="token-comment">' + escapeHtml(comment) + '</span>';
+        return out;
+    });
+
+    if (text.endsWith('\n')) html.push('');
+    el.highlight.innerHTML = html.join('\n');
+}
+
+function handleInput() {
+    if (machine.running) stopRun();
+    machine.active = false;
+    updateEditor();
+    syncScroll();
+}
+
+// ==========================================
+// 8. WIRING
+// ==========================================
+
+el.btnStep.addEventListener('click', stepOnce);
+el.btnRun.addEventListener('click', toggleRun);
+el.btnReset.addEventListener('click', resetMachine);
+el.code.addEventListener('input', handleInput);
+el.code.addEventListener('scroll', syncScroll);
+
+document.addEventListener('keydown', (e) => {
+    if (e.ctrlKey && e.key === 'Enter') {
+        e.preventDefault();
+        startRun();
+    }
+});
+
+updateEditor();
+drawRestState();
+
+})();
+</script>
+</body>
+</html>

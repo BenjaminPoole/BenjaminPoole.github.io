@@ -1,0 +1,1139 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>GERL — Grounding Experiential Reinforcement Learning</title>
+<meta name="description" content="Benjamin Poole's undergraduate dissertation: GERL, a grounded experiential reinforcement learning agent achieving state-of-the-art results on the BEHAVIOR-1K benchmark.">
+<style>
+:root{--bg:#fff;--fg:#1a1a1a;--fg-muted:#5f5f5f;--fg-faint:#949494;--rule:#e6e6e6;
+--card:#fafafa;--chip:#f2f2f2;--accent:#1a1a1a;--link:#1a1a1a;--mark:#f0efe9;
+--measure:44rem;--shadow:0 1px 2px rgba(0,0,0,.04),0 8px 24px rgba(0,0,0,.06);}
+:root[data-theme="dark"]{--bg:#0d0d0e;--fg:#e6e6e6;--fg-muted:#9b9b9b;--fg-faint:#6a6a6a;
+--rule:#262628;--card:#161618;--chip:#1e1e21;--accent:#fff;--link:#fff;--mark:#1e1e21;
+--shadow:0 1px 2px rgba(0,0,0,.4),0 8px 24px rgba(0,0,0,.35);}
+@media (prefers-color-scheme:dark){:root:not([data-theme="light"]){--bg:#0d0d0e;--fg:#e6e6e6;
+--fg-muted:#9b9b9b;--fg-faint:#6a6a6a;--rule:#262628;--card:#161618;--chip:#1e1e21;
+--accent:#fff;--link:#fff;--mark:#1e1e21;
+--shadow:0 1px 2px rgba(0,0,0,.4),0 8px 24px rgba(0,0,0,.35);}}
+
+*{box-sizing:border-box}
+body{margin:0;background:var(--bg);color:var(--fg);overflow-wrap:break-word;
+font-family:-apple-system,BlinkMacSystemFont,"Segoe UI",Inter,Roboto,Helvetica,Arial,sans-serif;
+font-size:16px;line-height:1.75;-webkit-font-smoothing:antialiased;}
+a{color:inherit}
+p a,li a,figcaption a{text-decoration:none;border-bottom:1px solid var(--rule);transition:border-color .15s}
+p a:hover,li a:hover,figcaption a:hover{border-bottom-color:var(--accent)}
+
+/* progress + nav */
+#prog{position:fixed;top:0;left:0;height:2px;background:var(--fg);width:0;z-index:30}
+nav{position:fixed;top:0;left:0;right:0;display:flex;justify-content:flex-end;align-items:center;
+gap:1.3rem;padding:1rem 1.5rem;font-size:.92rem;z-index:20;
+background:linear-gradient(to bottom,var(--bg) 60%,transparent)}
+nav a,nav button{color:var(--fg-muted);text-decoration:none;background:none;border:0;padding:0;
+font:inherit;cursor:pointer;display:inline-flex;align-items:center;transition:color .15s}
+nav a:hover,nav button:hover{color:var(--fg)}
+nav svg{width:17px;height:17px;display:block}
+#sun{display:none}
+:root[data-theme="dark"] #sun{display:block}
+:root[data-theme="dark"] #moon{display:none}
+@media (prefers-color-scheme:dark){:root:not([data-theme="light"]) #sun{display:block}
+:root:not([data-theme="light"]) #moon{display:none}}
+
+.wrap{max-width:74rem;margin:0 auto;padding:5.5rem 1.5rem 6rem;display:grid;
+grid-template-columns:15rem minmax(0,1fr);gap:3rem;align-items:start}
+article{max-width:var(--measure);min-width:0}
+
+/* sidebar toc */
+aside{position:sticky;top:5rem;max-height:calc(100vh - 8rem);overflow-y:auto;
+font-size:.83rem;line-height:1.5;padding-right:.5rem}
+aside h4{margin:0 0 .7rem;font-size:.72rem;letter-spacing:.09em;text-transform:uppercase;
+color:var(--fg-faint);font-weight:600}
+.toc-list{list-style:none;margin:0;padding:0}
+.toc-list li{margin:.12rem 0}
+.toc-list a{display:block;color:var(--fg-muted);text-decoration:none;padding:.12rem 0 .12rem .5rem;
+border-left:2px solid transparent;transition:color .15s,border-color .15s}
+.toc-list a:hover{color:var(--fg)}
+.toc-list a.active{color:var(--fg);border-left-color:var(--fg)}
+.toc-list .n{color:var(--fg-faint);margin-right:.45rem;font-variant-numeric:tabular-nums}
+.toc-l3 a{padding-left:1.1rem}
+.toc-l4 a{padding-left:1.9rem;font-size:.95em}
+aside::-webkit-scrollbar{width:6px}
+aside::-webkit-scrollbar-thumb{background:var(--rule);border-radius:3px}
+
+/* title block */
+.back{font-size:.9rem;color:var(--fg-muted);text-decoration:none;display:inline-block;margin-bottom:1.6rem}
+.back:hover{color:var(--fg)}
+h1{font-size:2.05rem;font-weight:700;letter-spacing:-.02em;line-height:1.25;margin:0 0 .9rem}
+.byline{font-size:1rem;margin:0 0 1.4rem;color:var(--fg)}
+.meta{display:grid;grid-template-columns:auto 1fr;gap:.25rem 1rem;font-size:.9rem;
+color:var(--fg-muted);margin:0 0 2.2rem;padding-bottom:2rem;border-bottom:1px solid var(--rule)}
+.meta dt{color:var(--fg-faint)}
+.meta dd{margin:0}
+.abstract{background:var(--card);border:1px solid var(--rule);border-radius:12px;
+padding:1.4rem 1.5rem;margin:0 0 2.5rem}
+.abstract h2{margin:0 0 .7rem;font-size:.75rem;letter-spacing:.09em;text-transform:uppercase;
+color:var(--fg-faint);font-weight:600;border:0;padding:0}
+.abstract p{margin:0 0 .9rem;font-size:.95rem}
+.abstract p:last-child{margin-bottom:0}
+
+/* headings */
+h2,h3,h4,h5{line-height:1.3;letter-spacing:-.01em;scroll-margin-top:5rem}
+h2{font-size:1.65rem;font-weight:700;margin:3.6rem 0 1.2rem;padding-bottom:.5rem;
+border-bottom:1px solid var(--rule)}
+h3{font-size:1.2rem;font-weight:650;margin:2.6rem 0 .9rem}
+h4{font-size:1.02rem;font-weight:650;margin:2rem 0 .7rem}
+h5{font-size:.95rem;font-weight:650;margin:1.6rem 0 .6rem;color:var(--fg-muted)}
+.secnum{color:var(--fg-faint);font-weight:500;margin-right:.6rem;font-variant-numeric:tabular-nums}
+/* chapter numbers read as part of the title: "2. Related Work" */
+h2 .secnum{color:inherit;font-weight:inherit;font-size:inherit;letter-spacing:inherit;
+margin-right:.45rem}
+h2 .secnum::after{content:"."}
+
+p{margin:0 0 1.2rem}
+strong{font-weight:650}
+code{font-family:ui-monospace,SFMono-Regular,"SF Mono",Menlo,Consolas,monospace;
+font-size:.87em;background:var(--chip);padding:.06em .22em;border-radius:4px;
+word-break:break-word}
+.math{font-family:Georgia,"Times New Roman",serif;font-style:italic}
+.math sub,.math sup{font-style:normal}
+
+/* lists */
+ul,ol{margin:0 0 1.2rem;padding-left:1.3rem}
+li{margin:.4rem 0}
+li p{margin:0 0 .5rem}
+li p:last-child{margin-bottom:0}
+ol.marked-list,ul.marked-list{list-style:none;padding-left:0}
+li.marked{display:flex;gap:.7rem;align-items:baseline}
+.li-mark{color:var(--fg-faint);flex:0 0 auto;font-variant-numeric:tabular-nums}
+
+/* links */
+.cite{white-space:nowrap;color:var(--fg-muted)}
+.xref{font-variant-numeric:tabular-nums}
+.url{word-break:break-all;font-size:.93em}
+
+/* figures */
+.fig{margin:2.4rem 0;padding:0}
+.fig .shot{display:block;background:#fff;border:1px solid var(--rule);border-radius:10px;
+overflow:hidden;padding:.5rem;transition:box-shadow .2s,border-color .2s}
+.fig .shot:hover{box-shadow:var(--shadow);border-color:transparent}
+.fig img{display:block;width:100%;height:auto;border-radius:4px}
+.fig .tall img{max-height:78vh;width:auto;max-width:100%;margin:0 auto}
+figcaption{font-size:.85rem;line-height:1.6;color:var(--fg-muted);margin-top:.7rem}
+.fignum{color:var(--fg);font-weight:600}
+.fig-missing{background:var(--chip);border:1px dashed var(--rule);border-radius:10px;
+padding:2rem;text-align:center;color:var(--fg-faint);font-size:.9rem}
+
+/* code blocks + collapsibles */
+pre.diff,pre.verb-pre{background:var(--card);border:1px solid var(--rule);border-radius:10px;
+padding:1rem 1.1rem;overflow-x:auto;font-size:.8rem;line-height:1.55;margin:1.4rem 0;
+font-family:ui-monospace,SFMono-Regular,"SF Mono",Menlo,Consolas,monospace;white-space:pre}
+details.verb{border:1px solid var(--rule);border-radius:10px;margin:1.2rem 0;background:var(--card)}
+details.verb summary{cursor:pointer;padding:.75rem 1rem;font-size:.9rem;font-weight:550;
+display:flex;justify-content:space-between;align-items:center;gap:1rem;list-style:none}
+details.verb summary::-webkit-details-marker{display:none}
+details.verb summary::before{content:"▸";color:var(--fg-faint);margin-right:.5rem;
+display:inline-block;transition:transform .15s}
+details.verb[open] summary::before{transform:rotate(90deg)}
+details.verb summary:hover{color:var(--fg)}
+.verb-meta{color:var(--fg-faint);font-size:.78rem;font-weight:400;white-space:nowrap}
+details.verb pre.verb-pre{margin:0;border:0;border-top:1px solid var(--rule);
+border-radius:0 0 10px 10px;max-height:34rem;overflow:auto;white-space:pre-wrap}
+
+/* bibliography */
+#bibliography+ol{list-style:none;padding:0;counter-reset:b;font-size:.9rem}
+#bibliography+ol li{counter-increment:b;position:relative;padding-left:2.2rem;margin:.85rem 0;
+line-height:1.6;color:var(--fg-muted);scroll-margin-top:5rem}
+#bibliography+ol li::before{content:"[" counter(b) "]";position:absolute;left:0;
+color:var(--fg-faint);font-variant-numeric:tabular-nums}
+#bibliography+ol li:target{background:var(--mark);border-radius:6px;
+padding-top:.4rem;padding-bottom:.4rem}
+.bib-t{color:var(--fg)}
+.bib-u{word-break:break-all;font-size:.93em}
+
+footer{margin-top:4rem;padding-top:1.5rem;border-top:1px solid var(--rule);
+font-size:.85rem;color:var(--fg-faint)}
+
+@media (max-width:960px){
+  .wrap{grid-template-columns:1fr;gap:0;padding-top:5rem}
+  aside{position:static;max-height:none;margin-bottom:2.5rem;padding:1rem 1.1rem;
+    background:var(--card);border:1px solid var(--rule);border-radius:12px;overflow:visible}
+  aside .toc-list{max-height:17rem;overflow-y:auto}
+  article{max-width:none}
+}
+@media (max-width:640px){
+  .wrap{padding:4.5rem 1.1rem 4rem}
+  h1{font-size:1.7rem}
+  h2{font-size:1.35rem}
+  .meta{grid-template-columns:1fr;gap:0}
+  .meta dt{margin-top:.5rem;font-size:.82rem}
+  nav{gap:1.05rem;padding:.9rem 1.1rem}
+}
+</style>
+</head>
+<body>
+<div id="prog"></div>
+<nav>
+  <a href="../index.html">Home</a>
+  <a href="../dissertation/latex/main.pdf">PDF</a>
+  <a href="https://github.com/BenjaminPoole" aria-label="GitHub" title="GitHub"><svg viewBox='0 0 16 16' fill='currentColor' aria-hidden='true'><path d='M8 0C3.58 0 0 3.58 0 8c0 3.54 2.29 6.53 5.47 7.59.4.07.55-.17.55-.38 0-.19-.01-.82-.01-1.49-2.01.37-2.53-.49-2.69-.94-.09-.23-.48-.94-.82-1.13-.28-.15-.68-.52-.01-.53.63-.01 1.08.58 1.23.82.72 1.21 1.87.87 2.33.66.07-.52.28-.87.51-1.07-1.78-.2-3.64-.89-3.64-3.95 0-.87.31-1.59.82-2.15-.08-.2-.36-1.02.08-2.12 0 0 .67-.21 2.2.82.64-.18 1.32-.27 2-.27s1.36.09 2 .27c1.53-1.04 2.2-.82 2.2-.82.44 1.1.16 1.92.08 2.12.51.56.82 1.27.82 2.15 0 3.07-1.87 3.75-3.65 3.95.29.25.54.73.54 1.48 0 1.07-.01 1.93-.01 2.2 0 .21.15.46.55.38A8.01 8.01 0 0 0 16 8c0-4.42-3.58-8-8-8Z'/></svg></a>
+  <button id="theme" aria-label="Toggle colour theme" title="Toggle colour theme">
+    <svg id="moon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round"><path d="M21 12.79A9 9 0 1 1 11.21 3 7 7 0 0 0 21 12.79Z"/></svg>
+    <svg id="sun" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="4.2"/><path d="M12 2v2M12 20v2M4.9 4.9l1.4 1.4M17.7 17.7l1.4 1.4M2 12h2M20 12h2M4.9 19.1l1.4-1.4M17.7 6.3l1.4-1.4"/></svg>
+  </button>
+</nav>
+
+<div class="wrap">
+<aside>
+  <h4>Contents</h4>
+  <ul class='toc-list'><li class='toc-l2'><a href='#sec:introduction'><span class=n>1</span>Introduction</a></li><li class='toc-l2'><a href='#sec:related_work'><span class=n>2</span>Related Work</a></li><li class='toc-l3'><a href='#sec:vla_models'><span class=n>2.1</span>Visual language action (VLA) models</a></li><li class='toc-l3'><a href='#sec:hierarchical_policies'><span class=n>2.2</span>Hierarchical Policies and Low-Level Controllers</a></li><li class='toc-l3'><a href='#sec:related_expel'><span class=n>2.3</span>Experiential learning with frozen LLMs</a></li><li class='toc-l2'><a href='#sec:method'><span class=n>3</span>Method</a></li><li class='toc-l3'><a href='#sec:simulator_interaction'><span class=n>3.1</span>Simulator Interaction</a></li><li class='toc-l3'><a href='#sec:training_overview'><span class=n>3.2</span>Training Overview</a></li><li class='toc-l3'><a href='#sec:inference'><span class=n>3.3</span>Inference</a></li><li class='toc-l3'><a href='#sec:implementation_details'><span class=n>3.4</span>Implementation Details</a></li><li class='toc-l2'><a href='#sec:evaluation'><span class=n>4</span>Evaluation</a></li><li class='toc-l3'><a href='#sec:protocol'><span class=n>4.1</span>Protocol</a></li><li class='toc-l3'><a href='#sec:results'><span class=n>4.2</span>Results</a></li><li class='toc-l4'><a href='#sec:competition_results'><span class=n>4.2.1</span>Competition results</a></li><li class='toc-l4'><a href='#sec:ablation_and_task_breakdown'><span class=n>4.2.2</span>Ablation and Task Breakdown</a></li><li class='toc-l4'><a href='#sec:generalization_across_randomized_initial_conditions'><span class=n>4.2.3</span>Generalisation across randomised initial conditions</a></li><li class='toc-l4'><a href='#sec:model_agnosticism_of_heuristics'><span class=n>4.2.4</span>Model-agnosticism of heuristics</a></li><li class='toc-l4'><a href='#sec:heuristic_interpretability'><span class=n>4.2.5</span>Heuristic interpretability</a></li><li class='toc-l4'><a href='#sec:policy_characteristics'><span class=n>4.2.6</span>Policy Characteristics</a></li><li class='toc-l2'><a href='#sec:limitations'><span class=n>5</span>Limitations and Future Work</a></li><li class='toc-l2'><a href='#sec:conclusion'><span class=n>6</span>Conclusion</a></li><li class='toc-l2'><a href='#sec:appendix'><span class=n>A</span>Appendix</a></li><li class='toc-l3'><a href='#sec:task_list'><span class=n>A.1</span>Task list</a></li><li class='toc-l3'><a href='#sec:system_prompts'><span class=n>A.2</span>System prompts</a></li><li class='toc-l4'><a href='#sec:student_prompt'><span class=n>A.2.1</span>Student</a></li><li class='toc-l4'><a href='#sec:teacher_prompt'><span class=n>A.2.2</span>Teacher</a></li><li class='toc-l4'><a href='#sec:failure_analysis_prompt'><span class=n>A.2.3</span>Failure analysis</a></li><li class='toc-l4'><a href='#sec:insight_extraction_prompt'><span class=n>A.2.4</span>Insights</a></li><li class='toc-l4'><a href='#sec:consolidation_prompt'><span class=n>A.2.5</span>Consolidation</a></li><li class='toc-l4'><a href='#sec:final_consolidation'><span class=n>A.2.6</span>Final consolidation (Claude Code)</a></li><li class='toc-l3'><a href='#sec:learned_heuristics'><span class=n>A.3</span>Learned heuristics</a></li><li class='toc-l4'><a href='#learned'><span class=n>A.3.1</span>Learned</a></li><li class='toc-l4'><a href='#after-final-consolidation'><span class=n>A.3.2</span>After final consolidation</a></li><li class='toc-l3'><a href='#sec:ablated_heuristics'><span class=n>A.4</span>Ablated heuristics</a></li><li class='toc-l3'><a href='#sec:codebase_details'><span class=n>A.5</span>Implementation details</a></li><li class='toc-l3'><a href='#sec:ai_disclaimer'><span class=n>A.6</span>AI usage disclaimer</a></li><li class='toc-l2'><a href='#statement-of-originality'>Statement of Originality</a></li><li class='toc-l2'><a href='#bibliography'>Bibliography</a></li></ul>
+</aside>
+
+<article>
+  <a class="back" href="../index.html">&larr; Benjamin Poole</a>
+  <h1>GERL: Grounding Experiential Reinforcement Learning for Generalist Agents</h1>
+  <p class="byline">State of the art results on the BEHAVIOR-1K competition</p>
+  <dl class="meta">
+    <dt>Author</dt><dd>Benjamin Poole</dd>
+    <dt>Supervisor</dt><dd>Mohammad Divband Soorati</dd>
+    <dt>Examiner</dt><dd>David Millard</dd>
+    <dt>Degree</dt><dd>BSc Computer Science, University of Southampton</dd>
+    <dt>Group</dt><dd>Agents, Interaction and Complexity</dd>
+  </dl>
+
+  <div class="abstract">
+    <h2>Abstract</h2>
+    <div class='abstract-body'><p>Generalist robotic agents must learn from experience, but traditional reinforcement learning scales poorly: as horizons grow, successful trajectories become rare and longer trajectories prevent effective credit assignment, starving the agent of learning signal. Long-horizon reasoning differs from reactive control, so we focus on training a System 2 controller. ExpeL (<a href='#bib-Zhao2023ExpeL' class='cite'>Zhao et al., 2024</a>) uses frozen LLM priors, leveraging their strong world knowledge and few-shot learning. However, in long-horizon tasks, completion rates are too low to bootstrap insight extraction and learned insights are corrupted by hallucinations. We introduce <em>Grounded Experiential Reinforcement Learning (GERL)</em>, which addresses both failures using a teacher LLM with oracle access to simulator state. The teacher advice both allows otherwise unsuccessful episodes to succeed and grounds the generated insights distilled from each trajectory, raising the task completion rate and learning efficiency. This allows us to achieve SOTA performance on the realistic BEHAVIOR-1K challenge, achieving 16% binary success at roughly <span class='math'>1/1000</span>th the training cost of prior work (not including a System 1 policy). Ablations confirm that the learned heuristics, not the base model, drive the performance gain. Furthermore our policy is model and embodiment agnostic, inheriting improvements from stronger LLMs and generalising to real hardware.</p></div>
+<figure id='fig:headline_figure' class='fig'><a href='../assets/dissertation/headline_figure.webp' class='shot' title='Open full size'><img src='../assets/dissertation/headline_figure.webp' alt='Figure 1' loading='lazy'></a><figcaption><span class='fignum'>Figure&nbsp;1.</span> GERL achieves comparable performance on the BEHAVIOR-1K challenge at a fraction of the training cost.</figcaption></figure>
+  </div>
+
+  <h2 id='sec:introduction' class='h-chapter'><span class='secnum'>1</span><span class='htext'>Introduction</span></h2>
+<p><em>“If you put ChatGPT in a robot, how do you train it?”</em></p>
+<p>The development of intelligent robotic agents promises to transform human labour through extensive automation and expansion of human affordances (<a href='#bib-Eloundou2023GPTs' class='cite'>Eloundou et al., 2023</a>). Over the last decade, significant research has been conducted in robotics. Famous demonstrations such as the humanoid Atlas from Boston Dynamics show robots jumping, opening doors and navigating their environment (<a href='#bib-BostonDynamicsAtlas2025' class='cite'>Boston Dynamics, 2025</a>). However, we do not see robots helping us in our everyday lives because of the difficulty of training long-horizon policies such as tidying the house or going shopping. While reactive (System 1) policies excel at simple pick-and-place tasks, as horizons grow, successful trajectories become rare causing reward sparsity and preventing effective credit assignment (which actions caused reward), starving the agent of learning signal.</p>
+<p>The difficulty of this challenge is captured by the BEHAVIOR-1K (<a href='#bib-Li2024Behavior1K' class='cite'>Li et al., 2024</a>) benchmark, a simulated environment of 1000 long-horizon household tasks (e.g. <code>picking_up_trash</code>, <code>putting_dishes_away_after_cleaning</code>). Current SOTA achieves only 11% binary success on the benchmark’s 50 evaluation tasks (<a href='#bib-Larchenko2025BEHAVIOR' class='cite'>Larchenko et al., 2025</a>), at a cost of $10k and a month of training.</p>
+<p>Generalisation requires information-rich, diverse learning experiences. Prior works train using supervised fine-tuning (imitation learning), in which policies imitate expert data, but this data is often suboptimal and policies struggle to generalise out-of-distribution. For example, the expert trajectories used to train <a href='#bib-Larchenko2025BEHAVIOR' class='cite'>Larchenko et al., 2025</a> had no recovery examples, so their policy stalls on novel states (e.g. a knocked-over glass). Reinforcement learning with verifiable rewards (RLVR) extends learning into interactive settings, allowing the agent to discover optimal policies through trial and error; however, RLVR is bottlenecked by two inefficiencies: sparse rewards (the agent rarely completes long-horizon tasks, so there is no learning signal) and credit assignment (what caused success or failure) must be inferred implicitly from scalar rewards. The resulting information sparsity creates a process that is very sample inefficient (<a href='#bib-Shi2026ERL' class='cite'>Shi et al., 2026</a>).</p>
+<p>We argue that these inefficiencies are better addressed by decomposing the problem. Long-horizon tasks require a different kind of reasoning than reactive control: planning, sub-goal decomposition, and recovery, yet existing approaches train end-to-end across both. We instead focus on training an LLM <em>System 2 policy</em> that reasons in language above the controller, delegating low-level execution to existing reactive skills. Language is the natural medium for hierarchical planning, and language models inherit this along with strong world knowledge and few-shot learning (<a href='#bib-Brown2020FewShot' class='cite'>Brown et al., 2020</a>). Rather than encoding experience into weights through gradient updates, which is expensive, model-dependent, and can hurt generalisation, we accumulate it as natural-language context that a frozen model can apply to new tasks directly. This experiential learning paradigm, first explored by ExpeL (<a href='#bib-Zhao2023ExpeL' class='cite'>Zhao et al., 2024</a>), uses natural-language reflection to address credit assignment directly, which together with the strength of the prior raising the completion rate, provides a far denser per-episode learning signal.</p>
+<p>However, in long-horizon robotics this paradigm hits two failure modes. First, initial completion rates remain too low to generate the successful experiences insight generation depends on. Second, hallucinations corrupt heuristics and execution. ExpeL’s own ablations show that hallucinated reflections degrade insight extraction (<a href='#bib-Zhao2023ExpeL' class='cite'>Zhao et al., 2024</a>, §5.6), and ungrounded heuristics carry that error forward into task following. Furthermore, hallucinations lower the completion rate by preventing successful task completion to generate experiences.</p>
+<p>We present our Grounded Experiential Reinforcement Learning (GERL) agent, which uses a grounded teacher LLM to address both these failure modes: low completion rates (sparse reward) and hallucinated credit assignment. Because completion rate is learning efficiency, we use the teacher to boost completion rates directly by providing escalating oracle feedback to struggling episodes, allowing otherwise unsuccessful trajectories to succeed and increasing the reward signal. We further address credit assignment by grounding the distilled natural-language insights with the oracle feedback data. By maximising learning efficiency, we accumulate enough generalisable signal to reach SOTA performance at a fraction of the training cost of prior work.</p>
+<h2 id='sec:related_work' class='h-chapter'><span class='secnum'>2</span><span class='htext'>Related Work</span></h2>
+<h3 id='sec:vla_models' class='h-section'><span class='secnum'>2.1</span><span class='htext'>Visual language action (VLA) models</span></h3>
+<p>Building on the success of pre-trained LLMs, VLA models extend LLMs to predict in robot joint space, unifying perception, planning and control as an end-to-end policy. RT-2 (<a href='#bib-Brohan2023RT2' class='cite'>Brohan et al., 2023</a>) first demonstrated this by fine-tuning a vision-language model (VLM) to predict discrete actions for short-horizon tasks (e.g. <code>place orange in matching bowl</code>) (Figure <a href='#fig:rt2_example' class='xref'>2.1</a>).</p>
+<figure id='fig:rt2_example' class='fig'><a href='../assets/dissertation/rt2_example.webp' class='shot' title='Open full size'><img src='../assets/dissertation/rt2_example.webp' alt='Figure 2.1' loading='lazy'></a><figcaption><span class='fignum'>Figure&nbsp;2.1.</span> An example prediction from the RT-2 VLA (<a href='#bib-Brohan2023RT2' class='cite'>Brohan et al., 2023</a>).</figcaption></figure>
+<p>Subsequent work developed this paradigm: <span class='math'>π<sub>0</sub></span> (<a href='#bib-Black2024Pi0' class='cite'>Black et al., 2024</a>) introduced flow matching (predicting action tokens by diffusion rather than autoregression) for faster inference and continuous action values (improving dexterity). However, the current SOTA VLA on the BEHAVIOR-1K benchmark (<a href='#bib-Larchenko2025BEHAVIOR' class='cite'>Larchenko et al., 2025</a>) achieves just 11% binary success, requiring 10,000 expert demonstrations (1200+ hours) and approximately $13,000 in compute on <span class='math'>8×</span>H200 GPUs. The authors' own failure analysis attributes this ceiling to long-horizon recovery, failed grasps the policy cannot retry. As discussed in Section <a href='#sec:introduction' class='xref'>1</a>, recovery behaviours like these can in principle be learned via reinforcement learning, but doing so end-to-end is highly inefficient: gradient updates over a single end-to-end policy must absorb both reactive control and long-horizon planning from one reward signal, which is sparse and credit-assignment-hard at the horizons BEHAVIOR-1K demands. Experiential reinforcement learning with frozen LLMs addresses these inefficiencies using the ExpeL paradigm, but is still very computationally expensive to train as it uses gradient updates. We instead leverage the few-shot learning paradigm using frozen model weights as discussed in Section <a href='#sec:related_expel' class='xref'>2.3</a>.</p>
+<h3 id='sec:hierarchical_policies' class='h-section'><span class='secnum'>2.2</span><span class='htext'>Hierarchical Policies and Low-Level Controllers</span></h3>
+<p>As justified in Section <a href='#sec:introduction' class='xref'>1</a> we decompose the long-horizon robotic control into a low-level executor (System 1) and a high-level planner (System 2). The low-level executor is responsible for reactive control (e.g. grasping objects) and the high-level planner is responsible for long-horizon reasoning (e.g. task planning).</p>
+<p>SayCan (<a href='#bib-Ahn2022SayCan' class='cite'>Ahn et al., 2022</a>) pairs an LLM planner with a learned value function over pretrained skills; Code as Policies (<a href='#bib-Liang2023CodeAsPolicies' class='cite'>Liang et al., 2023</a>) and ProgPrompt (<a href='#bib-Singh2023ProgPrompt' class='cite'>Singh et al., 2023</a>) emit Python that calls perception and control primitives; Inner Monologue (<a href='#bib-Huang2022InnerMonologue' class='cite'>Huang et al., 2022</a>) closes the loop with text-form feedback; and Octopus (<a href='#bib-Yang2023Octopus' class='cite'>Yang et al., 2023</a>) instantiates the same primitive-set design in OmniGibson, the simulator BEHAVIOR-1K is built on. Most directly, ELLMER (<a href='#bib-Mon-Williams2025ELLMER' class='cite'>Mon-Williams et al., 2025</a>) implements a real-world System 1 controller for long-horizon coffee-making, in which high-level primitives such as <code>find_object("mug")</code> are realised by a full perception–control pipeline: GPT-4V and YOLOv8 detect and localise the target object in the RGB image, RGB-D depth sensing lifts the detection to a 3D pose in the robot’s coordinate frame, and a motion planner with inverse kinematics executes the trajectory under force-feedback control. GERL’s symbolic API adopts the same abstraction in simulation via teleportation and state changes, justified by ELLMER’s demonstration that such primitives are realisable on real hardware with off-the-shelf computer vision and motion planning.</p>
+<h3 id='sec:related_expel' class='h-section'><span class='secnum'>2.3</span><span class='htext'>Experiential learning with frozen LLMs</span></h3>
+<p>Few-shot learning is far more sample-efficient and computationally cheaper than gradient updates, enabling rapid learning from a handful of trajectories. Language is itself a natural representation for long-horizon, multi-step tasks, with the hierarchical structure planning requires. Because no weight access is needed, the approach is model-agnostic and can improve with future LLM advancements. Furthermore, natural language feedback addresses credit assignment directly, as opposed to low-information scalar rewards. A growing body of work therefore explores the paradigm of experiential learning with frozen LLMs, in which a student LLM learns from experience by distilling natural-language heuristics from its own trajectories which are then used at inference. The efficiency of this paradigm allowed us to train in just 16 hours.</p>
+<p>ExpeL (<a href='#bib-Zhao2023ExpeL' class='cite'>Zhao et al., 2024</a>) accumulates reusable insights across a training set of tasks by contrasting successful and failed trajectories, then injects the accumulated insights and top-<span class='math'>k</span> similar successes into the prompt at evaluation. It builds on Reflexion (<a href='#bib-Shinn2023Reflexion' class='cite'>Shinn et al., 2023</a>), which introduced the per-episode loop of writing a verbal critique and prepending it to the next attempt, treating reflection as a “semantic gradient”. Voyager (<a href='#bib-Wang2023Voyager' class='cite'>Wang et al., 2023</a>) and GITM (<a href='#bib-Zhu2023Ghost' class='cite'>Zhu et al., 2023</a>) explore an alternative memory representation in Minecraft, accumulating libraries of executable code skills rather than prose. WALL-E 2.0 (<a href='#bib-Zhou2025WALLE2' class='cite'>Zhou et al., 2025</a>) takes a third route, inducing symbolic rules from prediction–observation mismatches and performing model-predictive control over the aligned world model. The same loop has matured rapidly in agentic coding, requiring few-shot generalisation; tools such as Claude Code (<a href='#bib-Anthropic2024ClaudeCode' class='cite'>Anthropic, 2024</a>) and SWE-agent (<a href='#bib-Yang2024SWEAgent' class='cite'>Yang et al., 2024</a>) learn from environment feedback and can consolidate to markdown (e.g. <code>CLAUDE.md</code>).</p>
+<p>However, in long-horizon robotics, the completion rates for language model priors are too low to bootstrap insight extraction and ungrounded LLM reflections corrupt the heuristic pool with hallucinations that further lower the completion rate. Building on ExpeL, GERL closes the gap with a teacher LLM that has oracle simulator state access, allowing it to provide grounded feedback to struggling episodes, boosting completion rates and grounding the distilled heuristics. We simplify our work by storing heuristics in model context rather than graphical structures (<a href='#bib-Zhou2025WALLE2' class='cite'>Zhou et al., 2025</a>); we hypothesise that as the instruction-following ability of language models increases, graphical structures for storing heuristics become less important.</p>
+<h2 id='sec:method' class='h-chapter'><span class='secnum'>3</span><span class='htext'>Method</span></h2>
+<p>Similar to ExpeL (<a href='#bib-Zhao2023ExpeL' class='cite'>Zhao et al., 2024</a>), GERL works by learning a natural-language heuristic from experience to complete long-horizon household tasks (see Figure <a href='#fig:method_overview' class='xref'>3.2</a>).</p>
+<p>The policy interacts with the simulator using a symbolic API (Section <a href='#sec:symbolic_api' class='xref'>3.1</a>) that abstracts low-level control into high-level affordances (e.g. <code>navigate_to(object)</code>, <code>toggle_on(object)</code>).</p>
+<p>The heuristic is learned by 3 components: (1) a student-teacher episode loop that completes training tasks and generates trajectories with help from an oracle teacher, (2) an insights model that generates heuristics from trajectories, and (3) an interval and final consolidation model that reduces heuristic noise by removing duplicates and consolidating similar insights.</p>
+<p>Following Section <a href='#sec:introduction' class='xref'>1</a> and Section <a href='#sec:related_work' class='xref'>2</a>, this training loop (Figure <a href='#fig:method_overview' class='xref'>3.2</a>, pseudocode in Algorithm <a href='#alg:training' class='xref'>3.5</a>) is designed to maximise the learning signal (information gain) from each episode by addressing the two key inefficiencies of RL-style exploration: low completion rates (sparse reward) and poor credit assignment. We boost completion rates directly with a teacher LLM that provides escalating oracle feedback to struggling episodes, and we address credit assignment by distilling natural-language heuristics from each episode (e.g. “you failed because there were multiple instances of the target object: place all the apples in the bowl, not just one”). By maximising learning efficiency, we accumulate enough generalisable signal to reach SOTA performance at a fraction of the training cost of prior work.</p>
+<p>All model weights are frozen and at inference the policy is just the student LLM with the final consolidated heuristics in its system prompt.</p>
+<h3 id='sec:simulator_interaction' class='h-section'><span class='secnum'>3.1</span><span class='htext'>Simulator Interaction</span></h3>
+<p><strong>Symbolic API.</strong>
+
+As LLMs lack grounding to the robot embodiment, predicting 3D poses directly is infeasible without fine-tuning. Following ELLMER (<a href='#bib-Mon-Williams2025ELLMER' class='cite'>Mon-Williams et al., 2025</a>) and Octopus (<a href='#bib-Yang2023Octopus' class='cite'>Yang et al., 2023</a>), we use a symbolic API that abstracts low-level control into high-level primitives / affordances using semantic navigation (e.g. <code>navigate_to(object)</code>, <code>toggle_on(object)</code>). This makes the policy fully embodiment agnostic. We implement these primitives using simulator teleportation and state changes. This abstraction is justified: ELLMER (<a href='#bib-Mon-Williams2025ELLMER' class='cite'>Mon-Williams et al., 2025</a>) and RT-2 (<a href='#bib-Brohan2023RT2' class='cite'>Brohan et al., 2023</a>) implement high-level primitives running on real hardware via off-the-shelf vision and inverse-kinematics controllers or VLAs.</p>
+<p><strong>API details.</strong>
+As introduced in Octopus (<a href='#bib-Yang2023Octopus' class='cite'>Yang et al., 2023</a>), we implement 18 action primitives that allow the model to interact with the simulator (see Figure <a href='#fig:action_primitives' class='xref'>3.1</a>).</p>
+<figure id='fig:action_primitives' class='fig'><a href='../assets/dissertation/action_primitives.webp' class='shot' title='Open full size'><img src='../assets/dissertation/action_primitives.webp' alt='Figure 3.1' loading='lazy'></a><figcaption><span class='fignum'>Figure&nbsp;3.1.</span> <em>Left:</em> 18 action primitives for LLM simulator interaction. Manipulation and state changes require the agent to be closer than 2 m to the object. These primitives are implemented by teleportation and state changes which simplifies the policy (justification: Section <a href='#sec:symbolic_api' class='xref'>3.1</a>) and makes it embodiment agnostic. <em>Right:</em> Example usage of the symbolic API to turn on a radio (at evaluation, not training). The student LLM emits one command per turn, receives feedback, and appends it to the context for the next turn. (XML delimiters and full trajectory details omitted for clarity, images edited.)</figcaption></figure>
+<h3 id='sec:training_overview' class='h-section'><span class='secnum'>3.2</span><span class='htext'>Training Overview</span></h3>
+<figure id='fig:method_overview' class='fig'><a href='../assets/dissertation/method_overview.webp' class='shot' title='Open full size'><img src='../assets/dissertation/method_overview.webp' alt='Figure 3.2' loading='lazy'></a><figcaption><span class='fignum'>Figure&nbsp;3.2.</span> <strong>(a) Training loop, (b) example trajectory.</strong> Each turn proceeds in three steps. (1) Given context, the student predicts a single symbolic action. (2) The simulator executes the action and appends feedback to the context. (3) The teacher generates feedback given the text trajectory using an Oracle API loop, which is also appended to the context. Steps 1–3 repeat until the student calls <code>finish</code> successfully or calls <code>stuck</code>. On success (5), the full trajectory is distilled by an <em>insights model</em> into 1–3 natural-language heuristics that accumulate across tasks, with periodic consolidation to remove duplicates and resolve conflicts. On failure (4), a <em>failure-analysis</em> model produces task-specific insights and the episode is retried, up to three attempts per task in total. At inference, the accumulated heuristics are used without the teacher. Pseudocode in Algorithm <a href='#alg:training' class='xref'>3.5</a>.</figcaption></figure>
+<p>At each student turn, a teacher LLM analyses the student’s action and the simulator’s feedback, queries an oracle API (Section <a href='#sec:oracle_api' class='xref'>3.4</a>), and appends natural-language advice to the student’s context for the next turn. By helping the student complete otherwise unsuccessful tasks the teacher increases the learning signal available to the insights model. Each new heuristic (credit assignment) raises the student’s completion rate on subsequent tasks, which in turn exposes new failure modes for the insights model to correct, accelerating the learning process. Together with the insights model, this solves the sparse reward and credit assignment problem that plague traditional RL-style exploration in this domain, allowing us to learn a generalisable heuristic at a fraction of the cost of prior work.</p>
+<p><strong>Feedback design.</strong> Two design choices in the teacher prompt shape what the downstream insights model sees.</p>
+<p><em>Escalating feedback.</em> A student on track receives a brief positive acknowledgement; a student that is stuck or repeating a mistake receives a strong oracle-grounded nudge naming exact objects, rooms, and required state changes. Correcting every minor mistake would eliminate the error patterns the insights model needs to convert into transferable rules.</p>
+<p><em>Delayed intervention.</em> When the student is merely exploring or briefly off-track, the teacher is instructed to wait rather than hand over the answer. The resulting trajectories have a struggle-then-resolve shape rather than one-shot rescues, which is richer material for insight extraction: the resolution is contextualised by the student’s prior wrong moves, so the extracted rule names both the trap and the fix.</p>
+<p><strong>Failure analysis and retry.</strong>
+((4) in Figure <a href='#fig:method_overview' class='xref'>3.2</a>) To boost the task completion rate, if the episode fails, we retry two more times by generating failure insights using the failure-analysis model, which reads the entire trajectory and generates specific analysis that will help the agent succeed on its next retry of the task. For example, if the agent calls <code>stuck</code> because it cannot find something, the failure-analysis model would suggest looking in a different location (to avoid repetition).</p>
+<p><strong>Insight generation and consolidation.</strong>
+((5) in Figure <a href='#fig:method_overview' class='xref'>3.2</a>) After each episode, we compute 1–3 insights using the insights model and append them to the heuristics. The student then moves to the next task with the new heuristics in its system context.</p>
+<p>To reduce noise in the heuristics and to remove repeated information, we consolidate the heuristics every four tasks (see Figure <a href='#fig:consolidation_steps' class='xref'>3.3</a>). This is much cheaper than using the insights model to regenerate the heuristics each time as a method of consolidation.</p>
+<p>At the end of training, a final consolidation step is performed by Claude Code: the full train state, individual task run data, and run logs are analysed to identify common failure modes (e.g., repetition, limited robot affordances) and to diagnose why tasks failed after repeated attempts. Based on this analysis, we regenerate the heuristic.</p>
+<figure id='fig:consolidation_steps' class='fig'><a href='../assets/dissertation/consolidation_steps.svg' class='shot' title='Open full size'><img src='../assets/dissertation/consolidation_steps.svg' alt='Figure 3.3' loading='lazy'></a><figcaption><span class='fignum'>Figure&nbsp;3.3.</span> <em>Top:</em> interval consolidation every 4 tasks to remove duplicates and noise. <em>Bottom:</em> final consolidation by Claude Code that deep-researches the training logs to identify common failure modes and generate a final heuristic.</figcaption></figure>
+<h3 id='sec:inference' class='h-section'><span class='secnum'>3.3</span><span class='htext'>Inference</span></h3>
+<figure id='fig:inference_loop' class='fig'><a href='../assets/dissertation/inference_loop.svg' class='shot' title='Open full size'><img src='../assets/dissertation/inference_loop.svg' alt='Figure 3.4' loading='lazy'></a><figcaption><span class='fignum'>Figure&nbsp;3.4.</span> Inference loop.</figcaption></figure>
+<p>At inference / evaluation time, the final policy is just the student with the appended heuristics. The student is given the system prompt plus the heuristics and the observation, and it predicts an action using the symbolic API. The simulator executes the action and returns feedback, which is appended to the context. This process repeats until the student calls <code>finish</code> successfully or calls <code>stuck</code>. See pseudocode in Algorithm <a href='#alg:inference' class='xref'>3.6</a>.</p>
+<h3 id='sec:implementation_details' class='h-section'><span class='secnum'>3.4</span><span class='htext'>Implementation Details</span></h3>
+<p><strong>Agent models.</strong>
+We used Gemini 3 Flash for the student and teacher agents to save costs and Gemini 3.1 Pro for the insights models (insights, consolidation and failure analysis). All model weights are frozen.</p>
+<p><strong>Student output syntax.</strong>
+Using the symbolic API, the student LLM interacts with the simulator using XML-style tags that delimit each component of a turn. On every turn, it emits a <code>&lt;summary&gt;</code> containing its chain-of-thought followed by exactly one <code>&lt;cmd&gt;</code> action, e.g. <code>&lt;cmd&gt;navigate_to("fridge_0")&lt;/cmd&gt;</code>; the simulator then replies with a <code>&lt;feedback&gt;</code> block containing the outcome of that command. Two further tags carry side-channel information: <code>&lt;description&gt;</code> delivers the task goal once at episode start, and <code>&lt;insights&gt;</code> prepends the accumulated heuristics to the system prompt.</p>
+<p><strong>Teacher output syntax.</strong>
+The teacher emits a structured block with five fields, <code>&lt;reward&gt;</code>, <code>&lt;confidence&gt;</code>, <code>&lt;subgoal&gt;</code>, <code>&lt;critique&gt;</code> and <code>&lt;advice&gt;</code>, of which only <code>&lt;advice&gt;</code> is appended to the student’s context. <code>&lt;confidence&gt;</code> is used by the insights model to weight the feedback; <code>&lt;reward&gt;</code> is logged for human review; all fields are carried in the training logs read by the final Claude Code consolidation (Section <a href='#sec:final_consolidation' class='xref'>A.2.6</a>).</p>
+<p><strong>Oracle API.</strong>
+
+The oracle API exposes three categories of simulator state withheld from the student: (i) <em>scene state</em>: object positions, rooms, and physical states, via <code>get_full_scene_state()</code> and <code>get_scene_layout()</code>, with targeted lookups by object name or category; (ii) <em>goal decoding</em>: the mapping from abstract BDDL goal-condition instances (e.g. <code>cabinet.n.01_1</code>) to concrete scene objects (e.g. <code>top_cabinet_lkxmne_2</code>), via <code>get_goal_object_mapping()</code>; and (iii) <em>progress</em>: a Q-score (fraction of completed subgoals) and a binary success flag, via <code>get_task_progress()</code>. Full API and teacher prompt in Appendix <a href='#sec:teacher_prompt' class='xref'>A.2.2</a>.</p>
+<p>See Appendix <a href='#sec:codebase_details' class='xref'>A.5</a> for more details on the codebase and implementation.</p>
+<figure id='alg:training' class='fig'><a href='../assets/dissertation/pseudocode_training.webp' class='shot' title='Open full size'><img src='../assets/dissertation/pseudocode_training.webp' alt='Algorithm 3.5' loading='lazy'></a><figcaption><span class='fignum'>Algorithm&nbsp;3.5.</span> Training loop pseudocode.</figcaption></figure>
+<figure id='alg:inference' class='fig'><a href='../assets/dissertation/pseudocode_inference.webp' class='shot' title='Open full size'><img src='../assets/dissertation/pseudocode_inference.webp' alt='Algorithm 3.6' loading='lazy'></a><figcaption><span class='fignum'>Algorithm&nbsp;3.6.</span> Inference loop pseudocode.</figcaption></figure>
+<h2 id='sec:evaluation' class='h-chapter'><span class='secnum'>4</span><span class='htext'>Evaluation</span></h2>
+<p>We evaluate the policy on the BEHAVIOR-1K benchmark and demonstrate:</p>
+<ul class='marked-list'><li class='marked'><span class='li-mark'>(1)</span><div><p>SOTA performance of 16% binary success at roughly <span class='math'>1/1000</span>th the training cost of previous (<a href='#bib-Larchenko2025BEHAVIOR' class='cite'>Larchenko et al., 2025</a>) (Section <a href='#sec:competition_results' class='xref'>4.2.1</a>).</p></div></li><li class='marked'><span class='li-mark'>(2)</span><div><p>The learned heuristics are the primary driver of this gain, not the base model (Section <a href='#sec:ablation_and_task_breakdown' class='xref'>4.2.2</a>).</p></div></li><li class='marked'><span class='li-mark'>(3)</span><div><p>Comparable generalisation with prior SOTA across randomised initial conditions (Section <a href='#sec:generalization_across_randomized_initial_conditions' class='xref'>4.2.3</a>).</p></div></li><li class='marked'><span class='li-mark'>(4)</span><div><p>The heuristics are model agnostic, allowing improvement with stronger base models (Section <a href='#sec:model_agnosticism_of_heuristics' class='xref'>4.2.4</a>).</p></div></li><li class='marked'><span class='li-mark'>(5)</span><div><p>In contrast to ExpeL (<a href='#bib-Zhao2023ExpeL' class='cite'>Zhao et al., 2024</a>), heuristic readability does not imply interpretability due to instruction fatigue, false heuristics (superstitions) and destructive rule interactions (Section <a href='#sec:heuristic_interpretability' class='xref'>4.2.5</a>).</p></div></li></ul>
+<h3 id='sec:protocol' class='h-section'><span class='secnum'>4.1</span><span class='htext'>Protocol</span></h3>
+<p>We follow the standard BEHAVIOR-1K competition protocol (<a href='#bib-Behavior1KEvaluation' class='cite'>Stanford Vision and Learning Lab, 2025</a>): 50 household tasks, 10 randomised episodes per task (Figure <a href='#fig:tro_shift_instances' class='xref'>4.1</a>) and two metrics: binary success (goal condition met) and Q-score (partial credit as fraction of completed subgoals (<a href='#bib-Behavior1KLeaderboard' class='cite'>Stanford Vision and Learning Lab, 2025</a>)) where 0 is failure and 1 is perfect success.</p>
+<p><strong>Deviations from standard protocol.</strong>
+Task boot times (<span class='math'> </span>7 minutes) and LLM API rate limits made full grid evaluation (<span class='math'>50×10</span>) infeasible. Following <a href='#bib-Bai2025OpenpiComet' class='cite'>Bai et al., 2025</a> we therefore reduce our evaluation to a single instance (<span class='math'>50×1</span>) for policy performance and evaluate a subset of 6 tasks (<span class='math'>6×10</span>) to show generalisation.</p>
+<p>As this work was conducted after the submission deadline (<a href='#bib-Behavior1KChallenge' class='cite'>Stanford Vision and Learning Lab, 2025</a>), we do not have access to private tasks to evaluate private success scores. We therefore only report and evaluate on public success scores.</p>
+<p>We also do not consider the time limit (<span class='math'>2×</span> human demonstrations) in our evaluation because of rate-limited external LLM APIs that require exponential backoff. We instead limited the maximum turns (100). When we were not rate-limited most tasks completed within a few minutes.</p>
+<figure id='fig:tro_shift_instances' class='fig'><a href='../assets/dissertation/tro_shift_instances.webp' class='shot' title='Open full size'><img src='../assets/dissertation/tro_shift_instances.webp' alt='Figure 4.1' loading='lazy'></a><figcaption><span class='fignum'>Figure&nbsp;4.1.</span> Example of 10 instance variations (randomised object and robot poses) for the task <code>turning_on_radio</code>. Observe in frames 3 and 4 the randomised radio position.</figcaption></figure>
+<h3 id='sec:results' class='h-section'><span class='secnum'>4.2</span><span class='htext'>Results</span></h3>
+<h4 id='sec:competition_results' class='h-subsection'><span class='secnum'>4.2.1</span><span class='htext'>Competition results</span></h4>
+<p>We achieved a SOTA 16% binary success rate while achieving parity on Q-score, despite spending just $10 on training versus $10,000 for the previous SOTA (<a href='#bib-Larchenko2025BEHAVIOR' class='cite'>Larchenko et al., 2025</a>). See Figure <a href='#fig:leaderboard_comparison' class='xref'>4.2</a> for details.</p>
+<figure id='fig:leaderboard_comparison' class='fig'><a href='../assets/dissertation/leaderboard_comparison.webp' class='shot' title='Open full size'><img src='../assets/dissertation/leaderboard_comparison.webp' alt='Figure 4.2' loading='lazy'></a><figcaption><span class='fignum'>Figure&nbsp;4.2.</span> SOTA Binary success rate, Q-score of our policy and training costs versus the top 5 policies on the BEHAVIOR-1K leaderboard. We spent just $10 on training versus $10,000 for previous SOTA (<a href='#bib-Larchenko2025BEHAVIOR' class='cite'>Larchenko et al., 2025</a>). Training costs were unavailable for other teams. Private evaluation scores were not available as this work was conducted after the submission deadline. Full leaderboard available at <a href='https://behavior.stanford.edu/challenge/leaderboard.html' class='url'>https://behavior.stanford.edu/challenge/leaderboard.html</a>.</figcaption></figure>
+<h4 id='sec:ablation_and_task_breakdown' class='h-subsection'><span class='secnum'>4.2.2</span><span class='htext'>Ablation and Task Breakdown</span></h4>
+<p><strong>Heuristics drive the performance gain and final consolidation is critical.</strong>
+To isolate the effect of the learned heuristics on policy performance, we compare 3 heuristics against the 50-task evaluation set: (i) the final Claude consolidated heuristics, (ii) raw learned heuristics before final consolidation, and (iii) no heuristics (ablation). See Figure <a href='#fig:q_score_totals' class='xref'>4.3</a>.</p>
+<p>To measure the effect of the learned heuristics, we evaluate the Claude consolidated heuristics against the learned heuristics and no heuristics. As shown in Figure <a href='#fig:q_score_totals' class='xref'>4.3</a>, the Claude consolidated heuristics significantly improve performance compared to default learned and ablated heuristics, demonstrating that the final consolidation step is critical to performance. Figure <a href='#fig:qscore_heatmap' class='xref'>4.4</a> further shows the Q-score across all tasks for each policy.</p>
+<figure id='fig:q_score_totals' class='fig'><a href='../assets/dissertation/q_score_totals.webp' class='shot' title='Open full size'><img src='../assets/dissertation/q_score_totals.webp' alt='Figure 4.3' loading='lazy'></a><figcaption><span class='fignum'>Figure&nbsp;4.3.</span> Binary success rate (left) and Q-score (right) across all 50 evaluation tasks for the 3 heuristics, demonstrating the importance of the Claude consolidation step.</figcaption></figure>
+<figure id='fig:qscore_heatmap' class='fig'><a href='../assets/dissertation/qscore_heatmap.webp' class='shot tall' title='Open full size'><img src='../assets/dissertation/qscore_heatmap.webp' alt='Figure 4.4' loading='lazy'></a><figcaption><span class='fignum'>Figure&nbsp;4.4.</span> Per-task Q-score and turn count for each heuristic. Each cell is labelled with turn count, and coloured by Q-score (darker green is higher).</figcaption></figure>
+<h4 id='sec:generalization_across_randomized_initial_conditions' class='h-subsection'><span class='secnum'>4.2.3</span><span class='htext'>Generalisation across randomised initial conditions</span></h4>
+<p><strong>Comparable generalisation with prior SOTA.</strong>
+We evaluate the generalisation of the policy by evaluating 6 tasks across 10 instances (see Figure <a href='#fig:rlc_vs_ours_heatmap' class='xref'>4.5</a>), and find comparable performance to prior SOTA (<a href='#bib-Larchenko2025BEHAVIOR' class='cite'>Larchenko et al., 2025</a>) without catastrophic degradation.</p>
+<figure id='fig:rlc_vs_ours_heatmap' class='fig'><a href='../assets/dissertation/rlc_vs_ours_heatmap.webp' class='shot' title='Open full size'><img src='../assets/dissertation/rlc_vs_ours_heatmap.webp' alt='Figure 4.5' loading='lazy'></a><figcaption><span class='fignum'>Figure&nbsp;4.5.</span> Variance of Q-score across 10 instances for 6 tasks comparing our policy with the Robot Learning Collective (<a href='#bib-Larchenko2025BEHAVIOR' class='cite'>Larchenko et al., 2025</a>); same key as Figure <a href='#fig:qscore_heatmap' class='xref'>4.4</a>. To test generalisation to object locations, the protocol randomises the default task and object poses (#0–9). (N.B. the actual values for RLC are digitised from their Figure 9 as that was the only source.)</figcaption></figure>
+<h4 id='sec:model_agnosticism_of_heuristics' class='h-subsection'><span class='secnum'>4.2.4</span><span class='htext'>Model-agnosticism of heuristics</span></h4>
+<p><strong>Stronger base models inherit the gain.</strong>
+Running with Claude Sonnet 4.6 on a sample of tasks (see Figure <a href='#fig:model_agnostic_heatmap' class='xref'>4.6</a>), we observe higher Q-score and lower turn counts. Because the policy is parameterised by its heuristics rather than model weights, it is not tied to a specific LLM, allowing it to be easily upgraded as demonstrated.</p>
+<figure id='fig:model_agnostic_heatmap' class='fig'><a href='../assets/dissertation/model_agnostic_heatmap.webp' class='shot' title='Open full size'><img src='../assets/dissertation/model_agnostic_heatmap.webp' alt='Figure 4.6' loading='lazy'></a><figcaption><span class='fignum'>Figure&nbsp;4.6.</span> Q-score across 5 tasks for each policy, comparing with Claude Sonnet 4.6. Sonnet achieves higher performance with lower turns as it is a more powerful model. This demonstrates that the policy can be easily upgraded with improvements in base LLMs. We only evaluated on a subset of tasks without testing for variance due to high API costs for Sonnet. Key is the same as Figure <a href='#fig:qscore_heatmap' class='xref'>4.4</a>.</figcaption></figure>
+<h4 id='sec:heuristic_interpretability' class='h-subsection'><span class='secnum'>4.2.5</span><span class='htext'>Heuristic interpretability</span></h4>
+<p>Interpretability is the degree to which a human can understand an AI’s decision process. In prior work on fine-tuned VLAs (<a href='#bib-Larchenko2025BEHAVIOR' class='cite'>Larchenko et al., 2025</a>), the policy is parameterised by opaque learned weights, making it difficult to attribute behaviour to any specific parameter. Our policy is instead parameterised by a set of learned natural-language heuristics, so we define interpretability here as <em>the degree to which a human can understand how the content of these heuristics shapes policy behaviour</em>. This relationship is often direct and testable: a heuristic describing how to operate an oven, for example, is precisely what enables the policy to use the oven; remove it and the behaviour fails.</p>
+<p><strong>Readability does not imply interpretability.</strong>
+In contrast to ExpeL (<a href='#bib-Zhao2023ExpeL' class='cite'>Zhao et al., 2024</a>) we do not believe “interpretability by construction” (i.e. heuristics as text) is sufficient. In ablation studies (Figure <a href='#fig:variance_comparison_grid' class='xref'>4.7</a>) we found that while rule-level instruction-following is directly observable, for example, removing the “idle for 5–10 turns while cooking” clause immediately reduced per-episode turn counts, exactly as the rule text would predict (panel a), the effect of a rule on task success was limited by three failure modes: <strong>negative rule interactions</strong> (panel b: the full cooking heuristics collectively break <code>cook_bacon</code> even though each clause is individually sensible), <strong>incorrect rules / superstitions</strong> (panel c: “never open door mid-cook” suppresses the stronger <code>cook</code> primitive), and <strong>instruction fatigue</strong> (panel d: ablating <em>irrelevant</em> transport heuristics still improves cooking performance, because the extra rule mass causes the model to overthink and avoid its best primitives). We conclude that the interpretability of heuristics on behaviour is limited by the model’s instruction-following ability and by incorrect heuristics, though auto-grounding of heuristics combined with improvements in base LLMs and lifelong learning is a promising direction we discuss in Section <a href='#sec:future_work' class='xref'>5</a>.</p>
+<figure id='fig:variance_comparison_grid' class='fig'><a href='../assets/dissertation/variance_comparison_grid.webp' class='shot' title='Open full size'><img src='../assets/dissertation/variance_comparison_grid.webp' alt='Figure 4.7' loading='lazy'></a><figcaption><span class='fignum'>Figure&nbsp;4.7.</span> Four single-clause ablations on cooking tasks (<code>cook_hot_dogs</code> and <code>cook_bacon</code>), each run over 10 instances with the baseline row above the ablated row (see ablated heuristic files in Appendix <a href='#sec:ablated_heuristics' class='xref'>A.4</a>). Key is the same as Figure <a href='#fig:qscore_heatmap' class='xref'>4.4</a>. <strong>(a) Faithful rule.</strong> Removing the “idle for 5–10 turns while cooking” clause increased both the success rate and the turn count, exactly as the rule text predicts. <strong>(b) Negative rule interactions.</strong> Removing <em>all</em> cooking heuristics degraded <code>cook_bacon</code> while leaving <code>cook_hot_dogs</code> roughly unchanged: the individual clauses are each reasonable but interact badly on the logistically harder six-piece bacon task. <strong>(c) Incorrect rule (superstition).</strong> Removing “never open door mid-cook” improved <code>cook_bacon</code> because the clause was suppressing the stronger <code>cook</code> primitive the agent already knows. <strong>(d) Instruction fatigue.</strong> Ablating <em>irrelevant</em> transport heuristics on the cooking tasks should be a null intervention, yet performance rises significantly: the extra unrelated rule mass causes the agent to avoid its best primitives even though nothing in the ablated rules forbids them.</figcaption></figure>
+<h4 id='sec:policy_characteristics' class='h-subsection'><span class='secnum'>4.2.6</span><span class='htext'>Policy Characteristics</span></h4>
+<h5 id='distance-travelled' class='h-subsubsection'><span class='secnum'>4.2.6.1</span><span class='htext'>Distance travelled</span></h5>
+<p><strong>The policy travels <span class='math'> </span>5<span class='math'>×</span> further than human demonstrations.</strong>
+No published distance baselines exist for competing policies, so we baseline against human demonstrations as an upper bound for efficiency (see Figure <a href='#fig:distance_vs_human_baseline_optimal_with_trajectories' class='xref'>4.8</a>). The policy’s distance inflation of <span class='math'> </span>5<span class='math'>×</span> is expected because of the inefficiency of semantic navigation and the training objective does not optimise for distance.</p>
+<figure id='fig:distance_vs_human_baseline_optimal_with_trajectories' class='fig'><a href='../assets/dissertation/distance_vs_human_baseline_optimal_with_trajectories.webp' class='shot tall' title='Open full size'><img src='../assets/dissertation/distance_vs_human_baseline_optimal_with_trajectories.webp' alt='Figure 4.8' loading='lazy'></a><figcaption><span class='fignum'>Figure&nbsp;4.8.</span> <em>Left:</em> Cumulative distance travelled by the policy (shaded by Q-score) baselined with human demonstration (blue, <span class='math'>n=200</span>) across 15 tasks. Tasks are sorted by Q-score; <span class='math'>Q&lt;1</span> indicates partial completion. The policy travels 4.90<span class='math'>×</span> further than humans on fully completed tasks and 5.49<span class='math'>×</span> further on partially completed tasks. <em>Right:</em> bird’s-eye view of corresponding trajectories. Policy paths are angular due to point-to-point semantic navigation (teleportation), unlike locally optimal human paths.</figcaption></figure>
+<h5 id='failure-analysis' class='h-subsubsection'><span class='secnum'>4.2.6.2</span><span class='htext'>Failure analysis</span></h5>
+<p>In Figure <a href='#fig:optimal_failure_categories' class='xref'>4.9</a> we used Claude Code to qualitatively categorise every task from the training logs where the policy did not reach <span class='math'>Q=1.0</span> (42/50 tasks).</p>
+<ul><li><p><strong>Regression</strong>: The agent hits a peak Q-score and then <em>reduces</em> it before calling <code>stuck()</code>. Having placed books in the correct storage box or toys on the right shelf, it wanders back to “check” and removes items from a correct container, effectively undoing its own progress. Dominant mode, accounting for <span class='math'> </span>21% of failures.</p></li><li><p><strong>Unmatched predicate</strong>: Long exploration (30+ turns) with <span class='math'>Q=0</span> throughout. The agent finds plausible objects (e.g. a <code>storage_box</code> for <code>moving_boxes_to_storage</code>) but the BDDL evaluator is checking a more specific predicate, target room, specific instance IDs, or a precise spatial relation, that the agent’s semantic search never hits.</p></li><li><p><strong>State change not triggered</strong>: The agent executes the physically intended action, <code>freeze(pie)</code>, <code>cook(food)</code>, <code>chop(onion)</code>, and receives “success”, but <code>finish()</code> still returns <code>FALSE</code>. The symbolic verb in the controller’s API does not satisfy the BDDL’s physical predicate (e.g. temperature <span class='math'>&lt;0 ^°</span>C), so the task-space goal remains unmet despite a “completed” action.</p></li><li><p><strong>Multi-instance incomplete</strong>: Tasks requiring <span class='math'>N</span> items placed (<code>setting_mousetraps</code>, <code>clearing_food_from_table_into_fridge</code>, <code>sorting_vegetables</code>). The agent places some correctly and plateaus; the peak Q-score is close to the final Q-score.</p></li><li><p><strong>Premature <code>stuck()</code></strong>: The agent gives up at exactly turn 15, the earliest point the <code>stuck()</code> heuristic permits, having made no progress. Concentrated in installation tasks (<code>hanging_pictures</code>, <code>attach_a_camera_to_a_tripod</code>) where the correct target surface is semantically ambiguous and the agent declines to enumerate candidates.</p></li><li><p><strong>Surface cleaning</strong>: Proximity-navigation with a cleaning tool (as prescribed by the optimal heuristic for floors and large surfaces) does not trigger the <code>covered(surface, dirt)</code> predicate in OmniGibson. <code>clean_a_patio</code>, <code>spraying_fruit_trees</code>, <code>clean_a_trumpet</code>.</p></li><li><p><strong>Limited agent affordances</strong>: No available command maps to the required predicate. <code>spraying_for_bugs</code> exhausted <code>toggle_on</code>, <code>place_on</code>, <code>place_inside</code>, and even <code>cook</code> on the atomiser and pot plants; none satisfied <code>covered(plant, insectifuge)</code>. This is a limitation of the symbolic API design, not the agent’s reasoning.</p></li><li><p><strong>Teleportation bug</strong>: <code>cook_bacon</code>: the agent followed the cooking heuristic perfectly (bacon placed directly in the frying pan, no nested containers), then <code>navigate_to(bacon_213)</code> teleported the robot 462 m away from its target, followed by a 2549 m teleport on the next turn.</p></li></ul>
+<p>Every non-infra failure ends with the agent voluntarily calling <code>stuck()</code>; no task under the optimal policy hit the 100-turn limit.</p>
+<figure id='fig:optimal_failure_categories' class='fig'><a href='../assets/dissertation/optimal_failure_categories.webp' class='shot' title='Open full size'><img src='../assets/dissertation/optimal_failure_categories.webp' alt='Figure 4.9' loading='lazy'></a><figcaption><span class='fignum'>Figure&nbsp;4.9.</span> Qualitative analysis of failure modes across all failed episodes generated by Claude Code analysis of logs.</figcaption></figure>
+<h5 id='training-observations' class='h-subsubsection'><span class='secnum'>4.2.6.3</span><span class='htext'>Training observations</span></h5>
+<p>To understand the learning process we analysed the training runs on the 42 tasks of which 14 were completed (33% success rate). See Figure <a href='#fig:turns_train' class='xref'>4.10</a> for turns-per-episode analysis.</p>
+<figure id='fig:turns_train' class='fig'><a href='../assets/dissertation/turns_train.webp' class='shot' title='Open full size'><img src='../assets/dissertation/turns_train.webp' alt='Figure 4.10' loading='lazy'></a><figcaption><span class='fignum'>Figure&nbsp;4.10.</span> Turns taken per episode during training, with attempt number (1–3) and success / failure indicated by colour. We see that most successful episodes were completed on the first attempt, suggesting that the failure-analysis model was not helpful or that the task was too difficult.</figcaption></figure>
+<figure id='fig:heuristic_growth_train' class='fig'><a href='../assets/dissertation/heuristic_growth_train.webp' class='shot' title='Open full size'><img src='../assets/dissertation/heuristic_growth_train.webp' alt='Figure 4.11' loading='lazy'></a><figcaption><span class='fignum'>Figure&nbsp;4.11.</span> Heuristic size across training episodes with consolidation steps. The final Claude consolidated heuristic is 5766 characters.</figcaption></figure>
+<h2 id='sec:limitations' class='h-chapter'><span class='secnum'>5</span><span class='htext'>Limitations and Future Work</span></h2>
+<p><strong>Heuristic drift.</strong> The interpretability analysis (Section <a href='#sec:heuristic_interpretability' class='xref'>4.2.5</a>) reveals that many of the learned heuristics are either incorrect or interact negatively with other heuristics (instruction fatigue), capping interpretability and performance over time. Future work could solve this using auto-grounding: the model ablation tests heuristics in the environment then removes or consolidates unhelpful ones. Mechanistic LLM interpretability tools and simpler approaches, such as forcing the LLM to explain its actions, could be used to trace heuristic causality for auto-grounding.</p>
+<p><strong>Path inefficiency.</strong> Semantic navigation makes the policy embodiment agnostic but inflates distance travelled <span class='math'> </span>5<span class='math'>×</span> versus human demonstrations. Adding a distance term to the training objective could encourage more efficient routes.</p>
+<p><strong>Symbolic API Abstraction.</strong> Our policy acts through high-level primitives rather than low-level control. This greatly simplifies the policy, making it embodiment agnostic, and prior work shows this can be implemented in real controllers (see Section <a href='#sec:related_work' class='xref'>2</a>). However we did not implement this layer, so our results are an upper bound assuming reliable primitive execution. In the heuristics, the model learned simulator bug workarounds when using the Symbolic API; we hypothesise that the model would be able to execute similar workarounds in a real-world System 1 API. Since the policy is embodiment agnostic, we expect it to transfer to a physical robot given a suitable controller, an evaluation we leave to future work.</p>
+<p><strong>Limited training analysis.</strong> We did not ablate the teacher and failure-analysis models in training, so their contribution to the learned heuristic is unverified. We also did not evaluate intermediate checkpoints, leaving unclear whether learning saturates or continues improving with more tasks, a key scaling question given our training set of only 41 tasks.</p>
+<p>An interesting future work application is <strong>Lifelong learning.</strong> Because the policy is parameterised by natural-language heuristics rather than model weights, it can be updated continually at near-zero cost. Paired with auto-grounding and stronger instruction-following in future base models, this makes lifelong learning a natural extension of our approach, in contrast to weight-based VLAs which require expensive fine-tuning and suffer from catastrophic forgetting.</p>
+<h2 id='sec:conclusion' class='h-chapter'><span class='secnum'>6</span><span class='htext'>Conclusion</span></h2>
+<p>Building on the successes of ExpeL (<a href='#bib-Zhao2023ExpeL' class='cite'>Zhao et al., 2024</a>) and Voyager (<a href='#bib-Wang2023Voyager' class='cite'>Wang et al., 2023</a>), we present an embodiment-agnostic policy for long-horizon household tasks that achieves SOTA 16% binary success on BEHAVIOR-1K at <span class='math'> </span>1/1000th the training cost of prior SOTA (<a href='#bib-Larchenko2025BEHAVIOR' class='cite'>Larchenko et al., 2025</a>): $10 and 16 hours versus $10,000 over a month. Where prior work relied on 1,200+ hours of training and 10,000 expert demonstrations, our policy learns natural-language insights from just 41 tasks with no demonstrations, driven by symbolic RL and the zero-shot generalisation of LLMs. We justify our System 1 abstraction by pointing to existing real-world implementations. We see this as a starting point for generalist agents that learn efficiently from experience without expensive human data or fine-tuning, and improve continually through lifelong learning.</p>
+<h2 id='sec:appendix' class='h-chapter'><span class='secnum'>A</span><span class='htext'>Appendix</span></h2>
+<h3 id='sec:task_list' class='h-section'><span class='secnum'>A.1</span><span class='htext'>Task list</span></h3>
+<p>The 42 training tasks in order are as follows:</p>
+<details class='verb'><summary>train_task_list.txt<span class='verb-meta'>42 lines · 857 chars</span></summary><pre class='verb-pre'>turning_on_the_hot_tub
+turn_off_a_normal_school_calculator
+bringing_newspaper_in
+putting_bike_in_garage
+putting_in_a_hot_tub
+store_honey
+installing_a_fax_machine
+installing_a_printer
+bringing_glass_to_recycling
+opening_doors
+opening_windows
+scrubbing_bathroom_floor
+clean_a_felt_pool_table_top
+clean_a_rug
+cook_a_brisket
+clean_up_broken_glass
+store_christmas_lights
+thaw_frozen_fish
+bringing_in_mail
+bringing_laundry
+installing_alarms
+mailing_letters
+make_stewed_fruit
+put_togethera_basic_pruning_kit
+returning_videotapes_to_store
+store_beer
+vacuuming_vehicles
+dispose_of_a_pizza_box
+putting_out_cat_food
+remove_sod
+buy_boxes_for_packing
+carrying_out_garden_furniture
+collecting_aluminum_cans
+de_ice_a_car
+heating_food_up
+make_the_ultimate_spa_basket
+mulching
+set_up_a_home_office_in_your_garage
+cleaning_parks
+dusting_rugs
+getting_package_from_post_office
+</pre></details>
+<h3 id='sec:system_prompts' class='h-section'><span class='secnum'>A.2</span><span class='htext'>System prompts</span></h3>
+<h4 id='sec:student_prompt' class='h-subsection'><span class='secnum'>A.2.1</span><span class='htext'>Student</span></h4>
+<details class='verb'><summary>student_prompt.txt<span class='verb-meta'>113 lines · 7,332 chars</span></summary><pre class='verb-pre'>You are an embodied robotic controller AI operating within a household simulation. Your objective is to successfully complete the user&#x27;s assigned task through logical, sequential interactions with your environment.
+think of this like completing a text based video game, where each command is a single action and you receive text + image observations in return.
+
+You will start by recieving the task &lt;description&gt; and an initial image of your surroundings. Use this information to plan your first action.
+you will see objects in the image like a radio for example but you wont know its name to interact with it until you use the list_pov_360() commands to get a list of visible objects and their names.
+if you cant see what you need use list_pov_360()
+
+If you are struggling explain in &lt;summary&gt; what you are trying to do and what the issue is, this provides insight into your decision making process for the human operator.
+
+
+
+Each turn, you will receive:
+* PREVIOUS &lt;feedback&gt;: The outcome or error message from your last command (or the initial scene description).
+* VISUAL INPUT: An image representing your current egocentric camera view.
+
+when you think the task is finished call the finish() command, which will trigger an evaluation of whether you have successfully completed the task. Only call this when you are certain the task goal is satisfied.
+
+=====
+AVAILABLE COMMANDS
+=====
+You may only use the exact commands listed below.
+
+1. Observation (Use these to build context):
+  list_pov_360()              -- Returns objects visible in a full 360 deg rotational scan. e.g. list_pov_360()
+
+2. Navigation &amp; Manipulation (Requires precise naming, to get the name use the observation commands):
+  navigate_to(name)           -- Teleport directly next to a specified object. e.g. navigate_to(&quot;fridge_0&quot;)
+  grasp(name)                 -- Pick up a nearby object (must be empty-handed). e.g. grasp(&quot;apple_1&quot;)
+  place_on(held, surface)     -- Place your currently held object onto a surface. e.g. place_on(&quot;apple_1&quot;, &quot;table_2&quot;)
+  place_inside(held, container) -- Place your currently held object inside a container. e.g. place_inside(&quot;apple_1&quot;, &quot;fridge_0&quot;)
+
+3. State Changes (You MUST be next to the object to use these):
+  open(name)                  -- e.g. open(&quot;fridge_0&quot;)
+  close(name)                 -- e.g. close(&quot;fridge_0&quot;)
+  toggle_on(name)             -- e.g. toggle_on(&quot;radio_89&quot;)
+  toggle_off(name)            -- e.g. toggle_off(&quot;radio_89&quot;)
+  cook(name)                  -- e.g. cook(&quot;chicken_3&quot;)
+  burn(name)                  -- e.g. burn(&quot;toast_1&quot;)
+  freeze(name)                -- e.g. freeze(&quot;water_glass_2&quot;)
+  heat(name)                  -- e.g. heat(&quot;soup_0&quot;)
+  fold(name)                  -- e.g. fold(&quot;towel_1&quot;)
+  unfold(name)                -- e.g. unfold(&quot;towel_1&quot;)
+
+4. Task Management:
+  finish()                    -- Call this ONLY when you are certain the task goal is satisfied. e.g. finish()
+  stuck()                     -- Call this as a LAST RESORT if you have exhausted all strategies and cannot make progress. Only available after turn 15.
+  do_nothing()                -- Idle for 30 simulation steps. e.g. do_nothing()
+
+
+=====
+RULES &amp; CONSTRAINTS
+=====
+1. DISTANCE CONSTRAINT: You must navigate to an object before manipulating it or changing its state. Attempting to interact from afar will feedback in a range error. e.g. use navigate_to(&quot;radio_89&quot;) before grasp(&quot;radio_89&quot;).
+1a. VISIBILITY CONSTRAINT: You can only navigate_to() objects that appear in your list_pov_360() scan. If an object name is not in your current 360 deg scan, call list_pov_360() first to find what is visible before navigating.
+2. EXACT MATCHING: Object names must perfectly match the strings returned by your observation commands.
+3. SCENE SURVEY: Always start a new task by calling list_pov_360() to understand your surroundings.
+4. ONE ACTION: You may only execute one command per turn. That is there must not be more than one &lt;cmd&gt;&lt;/cmd&gt; pair in your output!
+5. TASK COMPLETION: Only call finish() when you are certain the task goal is satisfied. An incorrect call will result in a failed episode.
+6. STUCK DETECTION: If you have been trying the same approach repeatedly without progress (e.g., the same command fails 6+ times), call stuck() to end the episode early. This is better than wasting turns on an impossible task. Only available after turn 15.
+7. HUMAN ADVICE: You may occasionally receive a &lt;useradvice&gt;...&lt;/useradvice&gt; block from a human operator -- follow this guidance when present.
+8. LEARNED INSIGHTS: Your system prompt may begin with an &lt;insights&gt;...&lt;/insights&gt; block containing lessons learned from previous task attempts. Apply these insights to guide your decisions -- they encode proven strategies and common pitfalls.
+
+=====
+RESPONSE FORMAT
+=====
+You must strictly follow this two-line format for every single response. Do not use markdown, code blocks, or conversational filler. 
+
+&lt;summary&gt;Briefly summarize your reasoning and next step for the human operator.&lt;/summary&gt;
+&lt;cmd&gt;Exactly one command from the Available Commands list&lt;/cmd&gt;
+
+after executing the command, you will receive new &lt;feedback&gt; from the simulationwhich you should use to inform your next action.
+
+=====
+ADVICE
+=====
+Occam&#x27;s razor: the simplest solution is often the correct one.
+
+To move around / navigate use semantic navigation e.g. if you need to move to the kitchen, there will be no &quot;kitchen&quot; object, 
+instead navigate to the fridge object to get to the kitchen
+
+the task &lt;description&gt; tells you which objects you need to manipulate. Use list_pov_360() to find those objects and navigate_to() them to interact with them. If you cant see the object you need, use list_pov_360() to find it.
+if the object is not visible in list_pov_360() then it may be in another room or container, so using the task description and your semantic navigation, move to that other room and try list_pov_360() again.
+
+e.g. if the task is to &quot;put the apple in the fridge&quot; and you cant see an apple in your list_pov_360() but you can see a fridge, navigate to the fridge, then use list_pov_360() again to see if the apple is visible from there. If you still cant see the apple, it may be in a different room, so use semantic navigation to move to another room and try list_pov_360() again until you find the apple.
+
+
+=====
+EXAMPLE SUCCESSFUL (simple) EPISODE
+=====
+
+&lt;description&gt;Turn on the heater in the living room.&lt;/description&gt;
+&lt;cmd&gt;list_pov_360()&lt;/cmd&gt;
+&lt;feedback&gt;
+Feedback: Objects visible in 360 deg (75):
+bottom_door_rhdbzv_0 (Category: bottom_door, Distance: 2.4m)
+metal_fireplace_gpnsij_0 (Category: metal_fireplace, Distance: 1.6m)
+...
+heater_abc123_0 (Category: heater, Distance: 1.7m)
+&lt;/feedback&gt;
+
+&lt;summary&gt;From the 360 deg scan, I can see that the heater_abc123_0 is visible and is 1.7m away. The task is to turn on the heater, so my next step is to navigate to it.&lt;/summary&gt;
+
+&lt;cmd&gt;navigate_to(&quot;heater_abc123_0&quot;)&lt;/cmd&gt;
+&lt;feedback&gt;Teleported to heater_abc123_0&lt;/feedback&gt;
+
+&lt;summary&gt;Now that I am next to the heater, to turn it on I can use the toggle_on command.&lt;/summary&gt;
+
+&lt;cmd&gt;toggle_on(&quot;heater_abc123_0&quot;)&lt;/cmd&gt;
+&lt;feedback&gt;Toggle on heater_abc123_0: success.&lt;/feedback&gt;
+
+&lt;summary&gt;the heater is now on. I have completed the task, so I will call finish() to end the episode.&lt;/summary&gt;
+&lt;cmd&gt;finish()&lt;/cmd&gt;
+&lt;feedback&gt;TRUE&lt;/feedback&gt;</pre></details>
+<h4 id='sec:teacher_prompt' class='h-subsection'><span class='secnum'>A.2.2</span><span class='htext'>Teacher</span></h4>
+<details class='verb'><summary>teacher_prompt.txt<span class='verb-meta'>324 lines · 20,264 chars</span></summary><pre class='verb-pre'>You are an omniscient Teacher LLM overseeing a Student VLM agent that is attempting to complete household tasks in the BEHAVIOR-1K robot simulation (OmniGibson). Your role is to observe the student&#x27;s behaviour, evaluate its progress using privileged oracle information unavailable to the student, and generate structured feedback.
+
+You are NOT the student agent. You do NOT control the robot directly. You observe the student&#x27;s actions and internal state, query the simulation through your privileged oracle API, and produce feedback.
+
+=======================
+YOUR PURPOSE
+=======================
+
+Your feedback serves a downstream insights model that learns from episode data (student actions + teacher feedback). The insights model does NOT have access to the oracle API, so your job is to use your oracle access to give precise, actionable feedback that the insights model can use to build better advice for the student on future tasks.
+
+The student needs to make mistakes so the insights model can learn from them. When the student is doing well, a brief positive acknowledgement is enough. When the student is struggling or stuck, give a stronger nudge using oracle data -- exact object names, positions, rooms, and states. This is where your feedback is most valuable.
+
+
+note that the student is given this advice in ===
+
+===
+Occam&#x27;s razor: the simplest solution is often the correct one.
+
+To move around / navigate use semantic navigation e.g. if you need to move to the kitchen, there will be no &quot;kitchen&quot; object, 
+instead navigate to the fridge object to get to the kitchen
+
+the task &lt;description&gt; tells you which objects you need to manipulate. Use list_pov_360() to find those objects and navigate_to() them to interact with them. If you cant see the object you need, use list_pov_360() to find it.
+if the object is not visible in list_pov_360() then it may be in another room or container, so using the task description and your semantic navigation, move to that other room and try list_pov_360() again.
+
+e.g. if the task is to &quot;put the apple in the fridge&quot; and you cant see an apple in your list_pov_360() but you can see a fridge, navigate to the fridge, then use list_pov_360() again to see if the apple is visible from there. If you still cant see the apple, it may be in a different room, so use semantic navigation to move to another room and try list_pov_360() again until you find the apple.
+===
+
+This advice is good for the student
+After observing a student turn (the student&#x27;s &lt;summary&gt;, &lt;cmd&gt;, and the result), you need to make sure the student is heading in the right direction. To do this, use your oracle API to evaluate the student&#x27;s action e.g. get_task_description() to work out exactly what the student should be doing e.g. is the student going to the wrong object because its misunderstood the task. In this way you can really help the student e.g. if an object is in another room the student may not be able to find it, so you can use get_scene_layout() to find the object and then give the student precise advice on how to navigate to it. Or if the student is trying to manipulate an object but is not adjacent to it, you can use get_object_state() to check the distance and then give precise feedback on what the student did wrong and how to fix it.
+
+To understand your purpose as a teacher, the aim of this project is that the student agent with frozen weights can learn good heuristics to solve the task. what happens is that the task episode data (student + teacher outputs) is given to an insignts model which builds advice for the student based on how the episode went, the teacher&#x27;s feedback and the student&#x27;s actions. The insights model does not have access to the oracle API, so your aim as a teacher is to use your oracle access to give the student precise, actionable feedback that can be used by the insights model to shape the student&#x27;s learning.
+
+The student needs to mess things up first so that the insights model can learn from the mistakes and the teacher&#x27;s feedback. If the student does not mess up, then there is no learning signal for the insights model. So if the student is doing well, all you need to do is give a positive reward. If the student is doing poorly, you can give them a stronger nudge to correct their behaviour. The key is that your feedback should be precise and actionable, so that the student can learn from it and improve in future turns.
+
+note that the reward signal is only used for human reviewers to help them understand how well you perceive the student is doing
+
+=======================
+STUDENT RULES
+=======================
+
+The student is given these rules below, make sure it follows them and correct it if it does not.
+e.g. sometimes the student tries to do multiple actions in a turn which is against its rules.
+
+
+1. DISTANCE CONSTRAINT: You must navigate to an object before manipulating it or changing its state. Attempting to interact from afar will feedback in a range error. e.g. use navigate_to(&quot;radio_89&quot;) before grasp(&quot;radio_89&quot;).
+1a. VISIBILITY CONSTRAINT: You can only navigate_to() objects that appear in your list_pov_360() scan. If an object name is not in your current 360 deg scan, call list_pov_360() first to find what is visible before navigating.
+2. EXACT MATCHING: Object names must perfectly match the strings returned by your observation commands.
+3. SCENE SURVEY: Always start a new task by calling list_pov_360() to understand your surroundings.
+4. ONE ACTION: You may only execute one command per turn. That is there must not be more than one &lt;cmd&gt;&lt;/cmd&gt; pair in your output!
+5. TASK COMPLETION: Only call finish() when you are certain the task goal is satisfied. An incorrect call will result in a failed episode.
+6. STUCK DETECTION: If the student has been trying the same approach repeatedly without progress (6+ times), it should call stuck() to end the episode early. Only available after turn 15.
+7. HUMAN ADVICE: You may occasionally receive a &lt;useradvice&gt;...&lt;/useradvice&gt; block from a human operator -- follow this guidance when present.
+8. LEARNED INSIGHTS: Your system prompt may begin with an &lt;insights&gt;...&lt;/insights&gt; block containing lessons learned from previous task attempts. Apply these insights to guide your decisions -- they encode proven strategies and common pitfalls.
+
+
+
+
+
+=======================
+STUDENT CONTEXT
+=======================
+
+The student agent receives each turn:
+  - A text observation from the simulator (feedback from the last command)
+  - An egocentric camera image (the robot&#x27;s head camera view)
+
+The student can only see objects within its forward field of view (~60 deg horizontal).
+The student does NOT have access to a map, global state, or object positions outside its FOV.
+Occasionally, a human operator may provide guidance via a &lt;useradvice&gt;...&lt;/useradvice&gt; block appended to the student turn context -- factor this advice into your evaluation and feedback.
+
+The student responds in this format:
+  &lt;summary&gt;reasoning about what to do next&lt;/summary&gt;
+  &lt;cmd&gt;command_name(&quot;arg1&quot;, &quot;arg2&quot;)&lt;/cmd&gt;
+
+Student commands (for interpreting student turns):
+  Observation   : list_pov_360()          -- 360 deg geometric scan (no images)
+  Navigation    : navigate_to(&quot;name&quot;)     -- teleport next to object
+  Manipulation  : grasp(&quot;name&quot;)           -- pick up object (must be adjacent)
+                  place_on(&quot;held&quot;,&quot;surf&quot;) -- place on surface
+                  place_inside(&quot;held&quot;,&quot;c&quot;)-- place inside container
+  State changes : open/close/toggle_on/toggle_off/cook/burn/freeze/heat/fold/unfold(&quot;name&quot;)
+                  (all require the robot to be within 2 m of the object)
+  Task          : finish()                -- evaluate task completion
+                  stuck()                 -- agent declares stuck (last resort, turn 15+)
+  Utility       : do_nothing()            -- idle for 30 steps
+
+The student is also given this standing advice:
+===
+Occam&#x27;s razor: the simplest solution is often the correct one.
+
+To move around / navigate use semantic navigation e.g. if you need to move to the kitchen, there will be no &quot;kitchen&quot; object, instead navigate to the fridge object to get to the kitchen.
+
+The task &lt;description&gt; tells you which objects you need to manipulate. Use list_pov_360() to find those objects and navigate_to() them to interact with them. If you cant see the object you need, use list_pov_360() to find it.
+If the object is not visible in list_pov_360() then it may be in another room or container, so using the task description and your semantic navigation, move to that other room and try list_pov_360() again.
+===
+
+=========================
+YOUR ORACLE API
+=========================
+
+You have access to privileged simulation data through the Teacher API.
+Issue commands using the format: &lt;teacher_cmd&gt;command_name(&quot;arg&quot;)&lt;/teacher_cmd&gt;
+
+Available commands:
+
+  get_full_scene_state()
+      Returns every interactive object in the scene with: exact name, category,
+      3-D world position, room membership, all physical states (open, toggled,
+      cooked, frozen, etc.), and whether the object is held by the robot.
+      Also indicates which objects are currently in the student&#x27;s FOV.
+      Use this for a complete omniscient world model.
+
+  get_task_description()
+      Returns the task name and all natural-language goal conditions from the
+      BDDL problem file. Use this to understand exactly what must be achieved.
+
+  get_goal_object_mapping()
+      Returns the BDDL-to-scene-object mapping for the current task. The BDDL
+      goal uses abstract instance names like &quot;cabinet.n.01_1&quot; -- this command
+      reveals which specific scene object each instance maps to (e.g.
+      &quot;top_cabinet_lkxmne_2&quot;). CRITICAL for directing the student to the
+      correct target object when multiple objects of a similar category exist.
+      very useful to try if student is unable to pass with feedback = false
+
+  get_task_progress()
+      Steps the simulation with a zero action and returns: current reward (float),
+      success flag (bool), terminated, truncated. Use this to get a quantitative
+      progress signal. 
+
+  get_robot_state()
+      Returns: robot position (x,y,z), compass heading, current inventory
+      (held objects), current task name, and nearest object distance.
+
+  get_object_state(&quot;object_name&quot;)
+      Returns full state for a specific object: position, room, distance from
+      robot, category, and all supported physical states. Supports substring
+      matching (e.g. &quot;radio&quot; will find &quot;radio_0&quot;).
+
+  get_objects_by_category(&quot;category&quot;)
+      Returns all objects whose category contains the given substring, with
+      positions and states. E.g. get_objects_by_category(&quot;radio&quot;) finds
+      all radios. Use this to instantly locate task-relevant objects.
+
+  get_scene_layout()
+      Returns a room-by-room spatial map of all objects in the house, showing
+      which room each object is in and its distance from the robot. Gives you
+      a top-down view of the scene without needing a rendered image.
+
+=========================
+FEEDBACK OUTPUT FORMAT
+=========================
+
+You MUST produce a structured feedback block every turn.
+
+Output your feedback in this exact format:
+
+&lt;teacher_feedback&gt;
+  &lt;reward&gt;FLOAT&lt;/reward&gt;
+  &lt;confidence&gt;FLOAT&lt;/confidence&gt;
+  &lt;subgoal&gt;STRING&lt;/subgoal&gt;
+  &lt;critique&gt;STRING&lt;/critique&gt;
+  &lt;advice&gt;STRING&lt;/advice&gt;
+&lt;/teacher_feedback&gt;
+
+Field definitions:
+
+  &lt;reward&gt; (float, range -1.0 to 1.0)
+      A human-readable progress signal for this turn. This is NOT a training
+      signal -- it helps human reviewers understand how well the student is doing.
+       1.0 : Perfect action -- directly achieves or makes clear progress toward goal
+       0.5 : Good action -- reasonable exploration, moves toward goal
+       0.0 : Neutral -- no clear progress (e.g. do_nothing, redundant scan)
+      -0.5 : Poor action -- wrong direction, wasted turn, missed opportunity
+      -1.0 : Bad action -- moved away from goal, caused irreversible harm, or failed
+      Use your judgment based on oracle data to set this appropriately.
+
+  &lt;confidence&gt; (float, range 0.0 to 1.0)
+      How confident you are in your feedback, based on oracle data quality.
+       1.0 : Feedback is fully grounded in oracle query results
+       0.5 : Partially grounded -- some inference beyond what oracle returned
+       0.0 : Speculative -- oracle data was missing or contradictory
+      The insights model uses this to weight your feedback. If your oracle query
+      returned unexpected results (e.g. get_objects_by_category returned empty),
+      set confidence LOW and flag the discrepancy explicitly in your advice.
+
+  &lt;subgoal&gt; (one imperative sentence)
+      The single most important next action the student should take right now.
+      Be specific: include exact object names (as returned by get_full_scene_state).
+      Example: &quot;Navigate to radio_0 in the living_room_0 and toggle it on.&quot;
+
+  &lt;critique&gt; (one or two sentences, or &quot;CORRECT&quot;)
+      What did the student do wrong this turn? If the action was correct, write
+      &quot;CORRECT&quot;. Otherwise explain the specific mistake using oracle knowledge.
+      Example: &quot;The student attempted to toggle_on the radio without navigating
+      adjacent first (radio_0 is 4.3 m away); the 2 m proximity constraint was
+      violated.&quot;
+
+  &lt;advice&gt; (two to four sentences)
+      This is the most important field -- it is consumed by the insights model
+      to build better advice for the student on future tasks.
+      Reference specific object names, positions, and states from your oracle data.
+      This text is injected directly into the student&#x27;s next observation.
+      Example: &quot;The radio (radio_0) is in the living_room_0 at position (3.21,
+      1.45, 0.92). You must first navigate_to(&#x27;radio_0&#x27;), then toggle_on(&#x27;radio_0&#x27;)
+      to complete the task. The radio is currently toggled off and requires no
+      other preparation.&quot;
+
+================================================
+EVALUATION STRATEGY
+================================================
+
+After observing a student turn (the student&#x27;s &lt;summary&gt;, &lt;cmd&gt;, and the simulator result), follow this process:
+
+1. READ the student&#x27;s &lt;summary&gt; and &lt;cmd&gt; to understand its intent.
+2. CHECK the simulator result (was the command accepted or did it return an error?).
+3. QUERY your oracle API to verify what actually happened -- use get_task_description()
+   to check the student understands the task, get_goal_object_mapping() to identify
+   the exact scene objects the goal requires, get_object_state() to check distances,
+   get_scene_layout() to locate objects the student can&#x27;t find.
+4. COMPARE: Does the student&#x27;s action make progress toward unsatisfied goal
+   conditions? Is the student near the right objects? Did a relevant state change?
+5. GENERATE your &lt;teacher_feedback&gt; block.
+
+Guidelines (use judgment, not rigid rules):
+  - A correct action that changed a required object state (e.g. opened a container
+    that needed to be open) typically warrants a high reward (~0.7 or above).
+  - An initial scan with list_pov_360 is good exploratory practice
+    and typically warrants a moderate reward (~0.3).
+  - If the student got an &quot;ERROR&quot; from the simulator (distance constraint,
+    object not found, already holding something), a negative reward is appropriate
+    (~-0.3 or below). Explain the exact error in your critique.
+  - If the student is repeatedly scanning without navigating to task-relevant
+    objects you can see with get_full_scene_state, intervene with a negative
+    reward and explicit direction in your advice.
+  - Use get_objects_by_category to instantly find objects the student is
+    searching for -- give the exact name and location in your advice.
+
+Calibrate your feedback intensity to how the student is doing:
+  - Student on track -&gt; critique = &quot;CORRECT&quot;, brief encouraging advice.
+  - Student slightly off -&gt; gentle correction with oracle-backed specifics.
+  - Student stuck or repeating mistakes -&gt; strong nudge with precise oracle data
+    (exact object names, room, position, distance, required state changes).
+
+================================================
+EXAMPLE INTERACTION
+================================================
+
+[Context: Task is &quot;turning_on_radio&quot;. Student Turn 1]
+
+Student output:
+  &lt;summary&gt;I need to survey the scene to find the radio.&lt;/summary&gt;
+  &lt;cmd&gt;list_pov_360()&lt;/cmd&gt;
+
+Simulator result:
+  Objects visible in 360 deg (12): table_0, chair_0, sofa_0, lamp_0, ...
+  (radio not listed -- it is in an adjacent room)
+
+Your oracle query:
+  &lt;teacher_cmd&gt;get_objects_by_category(&quot;radio&quot;)&lt;/teacher_cmd&gt;
+
+Oracle result:
+  Objects matching category &#x27;radio&#x27; (1):
+    radio_0 pos=(3.21, 1.45, 0.92) dist=6.8m room=&#x27;living_room_0&#x27; | toggleable=False
+
+Your feedback:
+if the student really can&#x27;t find the radio e.g. it has searched for maybe 6 or 7 turns then give it the advice
+if its just started wait and see if it finds the radio in the next couple of turns, if it does then give it the positive feedback, if it doesn&#x27;t then give it the advice
+
+  &lt;teacher_feedback&gt;
+    &lt;reward&gt;0.3&lt;/reward&gt;
+    &lt;subgoal&gt;Navigate to radio_0 in living_room_0 and toggle it on to complete the task.&lt;/subgoal&gt;
+    &lt;critique&gt;CORRECT -- scanning on the first turn is good practice, but the radio
+    was not in the student&#x27;s current room and was missed.&lt;/critique&gt;
+    &lt;advice&gt;The radio you need (radio_0) is in the living_room_0, approximately
+    6.8 m away at position (3.21, 1.45, 0.92). It is currently off. Use
+    navigate_to(&#x27;radio_0&#x27;) to move adjacent to it, then toggle_on(&#x27;radio_0&#x27;)
+    to complete the task.&lt;/advice&gt;
+  &lt;/teacher_feedback&gt;
+
+================================================
+RESPONSE PROTOCOL
+================================================
+
+You interact in a multi-turn loop. Each response you give is parsed for oracle
+queries and feedback. Follow this protocol:
+
+1. QUERY FIRST: Issue any &lt;teacher_cmd&gt; oracle queries you need.  You may
+   include multiple queries in a single response.  After each response
+   containing queries, the oracle results will be returned to you.
+2. FEEDBACK LAST: Once you have all the oracle data you need, produce your
+   &lt;teacher_feedback&gt; block.  The feedback block MUST appear in the SAME
+   message as your final analysis -- do not output it in a separate response
+   from your oracle queries.
+3. A typical interaction is 2 messages: (a) you issue oracle queries, (b) you
+   receive results and produce feedback.  Simple turns may need only 1 message
+   if you have enough context already.
+
+================================================
+IMPORTANT CONSTRAINTS
+================================================
+
+- You are an observer and mentor only -- you never issue student commands directly.
+- Use exact object names from the oracle (e.g. &quot;radio_0&quot;, not &quot;the radio&quot;).
+- When giving advice, always prefer information from your oracle queries over
+  guessing -- the oracle is always ground truth.
+- Keep advice concise and actionable (the student has a small context window).
+- **NEVER fabricate object names, positions, or states.** Only report what the
+  oracle actually returns. If get_objects_by_category() returns empty for an
+  object the task requires, you MUST flag this as a potential broken task in your
+  advice (e.g. &quot;WARNING: Oracle cannot find any objects matching &#x27;squash&#x27; in the
+  scene -- this task may be broken. Consider calling stuck() if no progress after
+  a few more turns.&quot;). Set confidence to 0.0 in this case.
+- **NEVER invent simulator mechanics** that you have not directly observed. Do
+  not describe mechanisms like &quot;coordinate zone synchronization&quot;, &quot;portal
+  reconciliation&quot;, or &quot;sector bridging&quot; -- these are not real simulator features.
+  If the student encounters a persistent distance bug (100m+ errors), acknowledge
+  it as a simulator bug and recommend calling stuck() rather than suggesting
+  fictional workarounds.
+- **EARLY TERMINATION:** If the student has attempted the same failing action or
+  pattern 6+ times in a row, explicitly recommend calling stuck() to end the
+  episode. Do not suggest &quot;one more thing to try&quot; indefinitely -- wasted turns
+  have real cost.
+- If get_task_progress returns success=True, confirm the task is complete and
+  assign reward=1.0 regardless of the action that triggered completion.</pre></details>
+<h4 id='sec:failure_analysis_prompt' class='h-subsection'><span class='secnum'>A.2.3</span><span class='htext'>Failure analysis</span></h4>
+<details class='verb'><summary>failure_analysis_prompt.txt<span class='verb-meta'>28 lines · 1,356 chars</span></summary><pre class='verb-pre'>You are analyzing a robot agent&#x27;s FAILED attempt at a household task.
+The agent did not complete the task successfully. Review the run log below and extract
+specific failure analysis that will help the agent succeed on its next retry of THIS SAME task.
+
+Focus on:
+- What specific mistake or misunderstanding caused the failure
+- What the teacher feedback and oracle queries reveal about what went wrong
+- What concrete strategy the agent should try differently on the next attempt so the agent doesn&#x27;t repeat the same actions that caused it to fail
+- Any object names, locations, rooms, or state requirements the agent missed
+
+IMPORTANT: Pay close attention to the &quot;Teacher Oracle Queries&quot; sections. These contain
+ground-truth simulator state (exact object locations, room contents, task completion conditions).
+Compare what the oracle saw vs what the agent did -- this reveals the root cause of failure.
+
+Format each point as a single bullet point starting with &quot;- &quot;.
+Be specific and actionable -- the agent will retry this exact task with your analysis as guidance.
+
+Task name: {task_name}
+Attempt number: {attempt_number} of {max_retries}
+
+Existing context (general insights from previous tasks):
+{existing_context}
+
+Run log from failed attempt:
+{run_log}
+
+Failure analysis (2-10 bullet points -- what went wrong and how to fix it on the next attempt):
+</pre></details>
+<h4 id='sec:insight_extraction_prompt' class='h-subsection'><span class='secnum'>A.2.4</span><span class='htext'>Insights</span></h4>
+<details class='verb'><summary>insight_extraction_prompt.txt<span class='verb-meta'>42 lines · 2,503 chars</span></summary><pre class='verb-pre'>You are analyzing a robot agent&#x27;s attempt at a household task. It has performed a full run of the task
+Review the run log below and extract 1-3 actionable, transferable insights
+that would help the agent perform better on FUTURE tasks (not just this one).
+
+Focus on:
+- Common mistakes to avoid (e.g., forgetting to navigate before interacting)
+- Useful patterns that worked (e.g., always scan 360 first)
+- Object interaction rules learned (e.g., must open container before placing inside)
+- Planning strategies (e.g., handle closest objects first)
+
+Format each insight as a single bullet point starting with &quot;- &quot;.
+Only include insights that would generalize to other tasks -- do NOT include task-specific retry guidance.
+If the robot keeps making the same mistakes e.g. you have to repeat insights then stress that.
+
+Note: The agent may have failed this task entirely. Even from failed attempts, extract
+any generalizable lessons about how the simulation works, common pitfalls, or strategies
+that would help on OTHER tasks.
+
+The robot had a teacher with oracle API access to help it e.g. GT knowledge of where objects are and the task completion state.
+
+The teacher was given this prompt
+
+===
+teacher feedback serves a downstream insights model that learns from episode data (student actions + teacher feedback). The insights model does NOT have access to the oracle API, so teacher job is to use your oracle access to give precise, actionable feedback that the insights model can use to build better advice for the student on future tasks.
+
+The student needs to make mistakes so the insights model can learn from them. When the student is doing well, a brief positive acknowledgement is enough. When the student is struggling or stuck, give a stronger nudge using oracle data -- exact object names, positions, rooms, and states. This is where teacher feedback is most valuable.
+===
+
+therefore you should expect to see helpful teacher feedback that happened during the run that you can use to help you give good insights.
+
+IMPORTANT: Pay close attention to the &quot;Teacher Oracle Queries&quot; sections in the log. These contain
+ground-truth simulator state (object locations, room contents, task completion conditions) that the
+agent could NOT see. The oracle data reveals the gap between what the agent knew and what it needed
+to know -- this is where the most valuable insights come from.
+
+Existing context:
+{existing_context}
+
+Run log:
+{run_log}
+
+New insights (1-3 bullet points, or &quot;NONE&quot; if nothing new):</pre></details>
+<h4 id='sec:consolidation_prompt' class='h-subsection'><span class='secnum'>A.2.5</span><span class='htext'>Consolidation</span></h4>
+<details class='verb'><summary>consolidation_prompt.txt<span class='verb-meta'>11 lines · 467 chars</span></summary><pre class='verb-pre'>You are consolidating a LLM based robot agent&#x27;s learned experience into a reference document.
+Merge, deduplicate, the insights below
+into a well-organized list. Group by theme if helpful.
+The purpose of this is to remove duplicate information, These are the only changes you make.
+If you see lots of duplicate information it means that the robot
+keeps getting this wrong so add strong emphasis
+
+Current insights:
+{context}
+
+Consolidated insights (bullet points only):</pre></details>
+<h4 id='sec:final_consolidation' class='h-subsection'><span class='secnum'>A.2.6</span><span class='htext'>Final consolidation (Claude Code)</span></h4>
+<details class='verb'><summary>deep_consolidation_prompt.md<span class='verb-meta'>32 lines · 1,958 chars</span></summary><pre class='verb-pre'>read @code/CLAUDE.md for context and @my_paper.md for context and @Evaluation.md
+I want to to anaylse this training run fully 
+@code/train_out/training_context/run_new_final_2nd_train.state.json 
+
+to help you understand the program read @code/student/student_prompt.txt and  @code/teacher/teacher_prompt.txt  
+
+and try and find problems e.g. common modes of failure etc, or repertition, read the run data e.g. 
+```json
+    &quot;run_data&quot;: [
+        &quot;/opt/behavior/codebase/code/train_out/out/451/run.json&quot;,
+        &quot;/opt/behavior/codebase/code/train_out/out/452/run.json&quot;,
+        &quot;/opt/behavior/codebase/code/train_out/out/453/run.json&quot;
+    ],
+```
+for each task, for the tasks that failed what was the cause even after 3x50 attempts, full analysis of common failures e.g. is it related to limited robot affordances, full analysis of each attempted task pelase
+
+in `/opt/behavior/codebase/code/train_out/out/{number}` next to run.json there is also run_full.md that will help you
+
+The purpose of this is to work out how to modify the policy architecture and training process to improve performance / get better results, and to identify common failure modes that can be addressed in future iterations of the training process.
+
+
+in @code/train_out/training_context/run_new_final_2nd_train.state.json we learn a final heuristic &quot;final learned heuristics&quot;, 
+What I would then like you to do is to look at every run in @code/train_out/training_context/run_new_final_2nd_train.state.json and generate an optimal heuristic based on the data / common modes of failure that would improve the performance over the &quot;final learned heuristics&quot;
+
+in generating the optimal heuristic rely just on the run data alone, do not cheat by using web tool 
+
+This is my reserach project and I want to invetiage
+1. ablation
+2. learned heuristics
+3. Claude overall heuristic performance from full analaysis of the run data. 
+
+I&#x27;m doing 1 and 2 but I need you to generate a heuristic for 3.</pre></details>
+<h3 id='sec:learned_heuristics' class='h-section'><span class='secnum'>A.3</span><span class='htext'>Learned heuristics</span></h3>
+<h4 id='learned' class='h-subsection'><span class='secnum'>A.3.1</span><span class='htext'>Learned</span></h4>
+<details class='verb'><summary>run_new_final.md<span class='verb-meta'>34 lines · 6,460 chars</span></summary><pre class='verb-pre'>**Scanning, Initialization, and Task Execution**
+*   **!!! ABSOLUTE CATASTROPHIC FATAL ERROR - YOU MUST NEVER, EVER CALL `finish()` ON TURN 1 !!!** Your FIRST action for ANY episode **MUST ALWAYS BE** a scan like `list_pov_360()`. You **MUST** physically locate items and complete the full required sequence before evaluating completion. **NEVER trust hallucinated initial states or completions!**
+*   Systematically explore for missing or occluded targets by navigating to other zones and performing secondary scans. Expect multiple instances for category tasks; the first instance seen is rarely the only one needed.
+
+**Navigation and Sequence Protocol**
+*   **!!! CRITICAL TRANSPORT RULE !!! Always execute transport sequentially: `navigate_to` -&gt; `grasp` -&gt; `navigate_to` -&gt; `place/place_inside`. YOU MUST PROACTIVELY MOVE TO TARGETS BEFORE INTERACTING. NEVER SKIP NAVIGATION STEPS!**
+*   **Area Cleaning:** You **MUST** physically move across the affected area by sequentially navigating to adjacent floor-level furniture. Stand-still cleaning fails. Do not navigate to ceiling fixtures or distant elements (unless recalibrating a specific &gt;250m distance bug).
+
+**Object Interaction and Placement**
+*   **!!! CRITICAL INVENTORY LIMIT !!! You are strictly limited to one uncontained item. TO AVOID INEFFICIENT TRIPS, YOU MUST ACTIVELY FIND AND USE PORTABLE RECEPTACLES (boxes, bins, baskets) TO CONSOLIDATE AND TRANSPORT MULTIPLE ITEMS!**
+*   **CRITICAL:** For area-based tasks, place objects directly on the floor/ground (not on vehicles or furniture). If an item requiring floor placement is already resting on the ground, the goal is implicitly met.
+*   **CRITICAL:** You **MUST ALWAYS** `toggle_on()` electronic devices after placing them. Simply placing an item never counts as &quot;installed&quot;.
+*   Explicitly `open()` closed storage before using `place_inside()`. If non-openable, use `place_inside()` directly.
+*   If feedback indicates a goal state is already met (e.g., &quot;already open&quot;, &quot;already on&quot;), treat that object as completed and immediately move to the next.
+*   If assumed &quot;fixed&quot; surfaces (like rugs) won&#x27;t clean with area tools, attempt to `grasp()` and transport them to a washing appliance instead.
+*   **Blind Grasping:** If an opened receptacle glitches and hides its contents from `list_pov_360()`, attempt to `grasp()` the target object directly by its exact name.
+
+**Appliance Usage and Cooking Sequences**
+*   **!!! EXTREMELY CRITICAL APPLIANCE SEQUENCE !!! You MUST strictly follow an unbroken sequence to trigger cooking, washing, or thawing: `open()` -&gt; `place_inside()` -&gt; `close()` -&gt; `toggle_on()` -&gt; `do_nothing()`. YOU MUST CLOSE THE DOOR BEFORE TOGGLING IT ON, AND NEVER REOPEN IT REPEATEDLY!**
+*   Physically cook raw ingredients inside the appliance to change their state *before* combining them into a final serving receptacle.
+*   Pre-position empty serving receptacles to their final destination or adjacent to the cooking appliance *before* filling them to prevent content-desync glitches.
+
+**Handling Task Failures and Simulation Glitches**
+*   **!!! CRITICAL FOR REPEATED FAILURES !!! If `finish()` evaluates to False, YOU MUST NEVER REPEAT THE EXACT SAME ACTION ON THE EXACT SAME OBJECT. Systematically try alternative targets!**
+*   **!!! EXTREME DISTANCE BUGS (&gt;250m) !!!** Immediately `navigate_to()` a primary structural element (roof/floor) to recalibrate. **NEVER** trust reassurances that these distances are normal. 
+*   **Physics/Math Errors &amp; Irrecoverable Desyncs:** If distances wildly jump (e.g., 2m to 23m), that origin is permanently bugged--**ABANDON IT ENTIRELY.** Attempt to reset the engine using `do_nothing()` or navigating to a distant target. Only call `stuck()` if the item is permanently lost and minimum turn thresholds are met.
+*   **Reuse Bug-Free Surfaces:** If placing multiple items causes target distance errors, carry the remaining items back to a previously successful surface rather than calling `stuck()`.
+*   **Visual/Rendering Glitches:** Do not panic on blank/black images; continue using `list_pov_360()` as a text-based spatial sensor. If severe rendering glitches occur (e.g., &quot;sky view&quot;), navigate to a distant object and attempt an action like `open()` to test if the simulation is frozen.
+- **Handling Missing Mission-Critical Objects:** If thorough exploration and scanning of expected locations (like storage containers or target rooms) reveal that essential goal objects have completely failed to spawn, this indicates an unrecoverable simulation bug. The correct protocol is to use `do_nothing()` to pass time until the minimum turn threshold (Turn 15) is reached, then call `stuck()`.
+- **Closing Extreme Distances:** If your initial scan shows all relevant task objects at extreme distances (e.g., &gt;250m), you have likely spawned far from the target room. Navigating directly to a large, recognizable piece of furniture in the target area (like a table or bed) is an effective way to quickly close the distance and bring the task environment into normal interaction range.
+- Explicitly verifying inventory constraints before attempting to pick up clustered objects (as done here to avoid violating the &quot;one uncontained item&quot; limit) is a highly effective strategy to prevent failed actions and wasted turns.
+- When performing cleaning tasks (like dusting rugs), you do not need an explicit &quot;clean&quot; or &quot;dust&quot; action. Simply `grasp()` the appropriate cleaning tool (e.g., a scrub brush) and `navigate_to()` each target object sequentially. The simulation automatically applies the cleaning effect based on your physical proximity while holding the tool.
+- **Precise Navigation for Object Interaction:** Navigating to a large supporting surface (like a desk or table) does not guarantee you will be within the required 2.0m interaction range of the objects resting on it. You must always use `navigate_to()` directly on the specific target object (e.g., `navigate_to(&quot;target_item&quot;)`) rather than the furniture it rests on before attempting to `grasp()` it.
+- **Systematic Trial for Ambiguous Destinations:** If a task involves placing items on a general category of surface (e.g., &quot;a desk&quot;) and there are multiple candidates in the room, systematically test them one by one. Move all required items to the first candidate, call `finish()`, and if it evaluates to `False`, systematically relocate all items to the next candidate surface before testing `finish()` again.</pre></details>
+<h4 id='after-final-consolidation' class='h-subsection'><span class='secnum'>A.3.2</span><span class='htext'>After final consolidation</span></h4>
+<details class='verb'><summary>claude_optimal_heuristic.md<span class='verb-meta'>48 lines · 5,786 chars</span></summary><pre class='verb-pre'>**Episode Initialization Protocol**
+* Your FIRST action MUST ALWAYS be `list_pov_360()` to survey the environment. Never call `finish()` before physically completing all required task steps.
+* Parse the task description to identify ALL goal objects and their required final states. Count how many distinct objects/instances are needed -- tasks often require multiples.
+
+**Navigation &amp; Transport Sequence**
+* Always follow the strict sequence: `navigate_to(target)` -&gt; `grasp(target)` -&gt; `navigate_to(destination)` -&gt; `place_on/place_inside(target, destination)`.
+* You MUST navigate directly to the specific target object, NOT to the furniture it rests on. Navigating to a table does not put you within 2m of items on the table.
+* For multi-object transport tasks: BEFORE making repeated trips, search for a portable container (box, bin, basket, bag) in your scan. Place multiple items inside it, then transport the container in one trip. Your inventory holds only ONE uncontained item.
+
+**Object Search Strategy**
+* If target objects are not visible in your initial `list_pov_360()`, use semantic navigation -- move to the room where such objects would logically be found (e.g., kitchen appliances near the fridge, outdoor items near the driveway).
+* Check INSIDE containers: `open()` cabinets, drawers, and storage furniture, then re-scan with `list_pov_360()`. Objects inside closed containers are invisible to scanning.
+* If an opened container doesn&#x27;t show its contents in `list_pov_360()`, attempt `grasp(&quot;exact_object_name&quot;)` directly -- rendering glitches can hide visible objects while they remain graspable (&quot;blind grasping&quot;).
+* If objects genuinely don&#x27;t exist after exhaustive search (all rooms, all containers opened), the environment is likely broken. Use `do_nothing()` until Turn 15, then call `stuck()`.
+
+**Cleaning Tasks -- Modality Selection**
+Cleaning is the most failure-prone task category. The correct method depends on the object:
+* **Floors / large fixed surfaces (dust, dirt, spills):** Grasp a cleaning tool (scrub brush, mop, sponge), then `navigate_to()` multiple furniture items AROUND the dirty area. The cleaning effect applies by proximity while holding the tool. You must cover the area by visiting 5-8 adjacent objects, not just standing in one spot.
+* **Rugs / carpets / fabric items:** These are MOVEABLE. If vacuuming by proximity fails after 3-4 attempts, `grasp()` the rug and `place_inside()` a washing machine or sink. Then run the appliance cycle: `close()` -&gt; `toggle_on()` -&gt; `do_nothing()` x 3.
+* **Specific surfaces (pool table felt, iron bottom):** Try proximity cleaning with a brush first. If `finish()` returns FALSE, the object may require a specific cleaning agent. Search cabinets for soap/detergent and grasp both the tool AND the agent (one at a time -- bring the agent to the surface first, then the tool).
+* **KEY RULE:** If your current cleaning method shows zero progress after 5 navigate-around attempts, SWITCH METHODS. Do not repeat the same failing approach.
+
+**Cooking Tasks -- Heat Source Selection**
+* The cooking sequence is: `open(appliance)` -&gt; `place_inside(food, appliance)` -&gt; `close(appliance)` -&gt; `toggle_on(appliance)` -&gt; `do_nothing()` x 5-10 turns.
+* CRITICAL: Place food items DIRECTLY into the heat source, NOT inside an intermediate container (bowl, pan) that is then placed inside the appliance. The simulator does not propagate cooking state through nested containers.
+* NEVER open the appliance door while waiting -- this interrupts the heat transfer and resets progress.
+* If one heat source (e.g., microwave) fails to trigger the `cooked` state after 8 turns of uninterrupted idling, IMMEDIATELY try a different heat source. Priority order: (1) stovetop burner with frying pan -- use `place_on(food, frying_pan)` or `place_on(food, burner)`, then `toggle_on(burner)`, (2) oven, (3) microwave.
+* For stovetop cooking, food is placed ON the surface, not inside.
+
+**Installing / Setting Up Equipment**
+* &quot;Installing&quot; an electronic device ALWAYS requires `toggle_on()` after placement. Placement alone never satisfies installation tasks.
+* When the task specifies a room but not an exact surface, try placing on the most common work surface first (desk, table, countertop). If `finish()` returns FALSE, systematically relocate ALL items to the next candidate surface.
+* Avoid navigating to structural elements (roof, ceiling, walls) -- this can teleport you outside or to broken coordinates.
+
+**State Change Commands**
+* Explicitly `open()` containers before `place_inside()`. If the container is marked `openable=False`, use `place_inside()` directly.
+* Some objects start in the goal state (already open, already on). If a command returns &quot;already [state]&quot;, mark that object as done and move on.
+* After completing all steps you believe satisfy the task, call `finish()`. If it returns FALSE, you have missed a step or targeted the wrong object.
+
+**Handling finish() = FALSE**
+* Do NOT repeat the same action on the same object. Instead: (1) re-scan with `list_pov_360()`, (2) check if there are additional instances of the target object you missed, (3) try alternative surfaces/containers for placement tasks, (4) verify you completed ALL required state changes (toggle_on, close, etc.).
+* For tasks with multiple goal conditions, verify EACH condition independently -- one missed sub-goal causes overall failure.
+
+**When to Call stuck()**
+* Only call `stuck()` after Turn 15 when you have confirmed the task is impossible (missing objects, irrecoverable physics bugs).
+* NEVER call `stuck()` because a single approach failed. Always try at least 2-3 fundamentally different strategies first.
+* Do NOT trust external advice telling you the task is &quot;broken&quot; -- verify with your own observations first.
+</pre></details>
+<h3 id='sec:ablated_heuristics' class='h-section'><span class='secnum'>A.4</span><span class='htext'>Ablated heuristics</span></h3>
+<p>Each ablation is a copy of the final-consolidated heuristics (Appendix Section “Learned heuristics <span class='math'>→</span> After final consolidation”) with the lines below changed. Only the diff against the baseline is shown.</p>
+<p><strong>Ablation: “idle for 5–10 turns while cooking” clause removed</strong> (used for Figure <a href='#fig:variance_comparison_grid' class='xref'>4.7</a> panel (a)).</p>
+<p>Line 24, the “do nothing” tail of the cooking sequence was removed:</p>
+<pre class='diff'>- * The cooking sequence is: `open(appliance)` -&gt; `place_inside(food, appliance)` -&gt; `close(appliance)` -&gt; `toggle_on(appliance)` -&gt; `do_nothing()` x 5-10 turns.
++ * The cooking sequence is: `open(appliance)` -&gt; `place_inside(food, appliance)` -&gt; `close(appliance)` -&gt; `toggle_on(appliance)`.</pre>
+<p>Line 27, the “after 8 turns of uninterrupted idling” clause was removed from the heat-source fallback rule:</p>
+<pre class='diff'>- * If one heat source (e.g., microwave) fails to trigger the `cooked` state after 8 turns of uninterrupted idling, IMMEDIATELY try a different heat source. Priority order: (1) stovetop burner with frying pan -- use `place_on(food, frying_pan)` or `place_on(food, burner)`, then `toggle_on(burner)`, (2) oven, (3) microwave.
++ * If one heat source (e.g., microwave) fails to trigger the `cooked` state, IMMEDIATELY try a different heat source. Priority order: (1) stovetop burner with frying pan -- use `place_on(food, frying_pan)` or `place_on(food, burner)`, then `toggle_on(burner)`, (2) oven, (3) microwave.</pre>
+<p><strong>Ablation: “no nested containers” cooking rule removed</strong> (used for Figure <a href='#fig:variance_comparison_grid' class='xref'>4.7</a> panel (b)).</p>
+<p>Line 25 was removed entirely:</p>
+<pre class='diff'>- * CRITICAL: Place food items DIRECTLY into the heat source, NOT inside an intermediate container (bowl, pan) that is then placed inside the appliance. The simulator does not propagate cooking state through nested containers.</pre>
+<h3 id='sec:codebase_details' class='h-section'><span class='secnum'>A.5</span><span class='htext'>Implementation details</span></h3>
+<p><strong>Computational resources.</strong>
+Training was performed on a desktop Intel(R) Core(TM) i7 CPU with 32 GB RAM, and a single NVIDIA GeForce RTX GPU. Evaluation was performed on a cloud vast.ai VPS with 8 AMD Ryzen Threadripper PRO 3945WX cores, 85.9 GB RAM, and a single NVIDIA GeForce RTX 3060 GPU. All LLM API calls were made to Google’s Gemini API, with fallback to OpenRouter when rate limits were hit (see Section <a href='#sec:codebase_implementation_details' class='xref'>A.5</a>).</p>
+<p><strong>Codebase implementation details.</strong>
+
+51K+ lines of code (including comments and whitespace) across 163 files.</p>
+<p>The codebase is organised as a microservice: <code>interaction_simulator.py</code> wraps OmniGibson behind a Flask HTTP API, while the training orchestrator <code>train.py</code> and the agentic loop <code>agent_play.py</code> run as separate clients. This separation lets the simulator (<span class='math'> </span>7 m boot) be developed independently of the agent logic. We ran a script to pre-sample training tasks to speed simulator load time to 60–120 seconds instead of 600+ seconds. State is persisted to JSON after every task (<code>train_utils.py</code>), so a GPU crash or pre-emption simply triggers a simulator restart and resumes from the last checkpoint, which is essential when running on ephemeral rented hardware.</p>
+<p>During training and evaluation, the simulator frequently crashed, so we used a restart-retry loop. The simulator configuration also differed across tasks, causing frequent crashes. We addressed this by using Claude Code in an agentic loop to load all the required tasks in the simulator, debug errors within the loop, and write the loading information for each task to a JSON file.</p>
+<p>The LLM layer in <code>llm_api/</code> abstracts over multiple providers behind a single <code>LLMClient</code> protocol. In practice every request is routed through a <code>fallback_backend.py</code> that tries the native Gemini API first, taking advantage of its implicit prompt caching, which is critical given the heuristics-augmented prompt, and only falls back to OpenRouter when Gemini returns a rate-limit error (HTTP 429 / <code>RESOURCE_EXHAUSTED</code>) after exhausting internal retries with exponential backoff. The next request always retries Gemini first, so the cheaper cached path remains primary. Different roles are bound to different models in <code>config.py LLM_ROLES</code>: Gemini 3 Flash drives the student and teacher (where latency dominates), while the heavier Gemini 3.1 Pro is reserved for insight extraction, per-attempt failure analysis, and consolidation, where reasoning quality matters more than throughput.</p>
+<h3 id='sec:ai_disclaimer' class='h-section'><span class='secnum'>A.6</span><span class='htext'>AI usage disclaimer</span></h3>
+<p>AI tools were used throughout the development of this project. The codebase, including the symbolic API, was developed agentically with Claude Code, which was also used for the final heuristic consolidation step and for the qualitative failure-mode analysis of the training logs. AI was additionally used to assist in editing parts of the report. The full itemised disclosure is included in the submitted PDF.</p>
+
+  <h2 id="bibliography"><span class="htext">Bibliography</span></h2>
+  <ol>
+  <li id='bib-Ahn2022SayCan'><span class='bib-a'>Ahn, et al.</span> (2022). <span class='bib-t'>Do As I Can, Not As I Say: Grounding Language in Robotic Affordances</span>. <span class='bib-v'>Conference on Robot Learning (CoRL)</span>.</li>
+<li id='bib-Anthropic2024ClaudeCode'><span class='bib-a'>Anthropic</span> (2024). <span class='bib-t'>Claude Code</span>. <a href='https://www.anthropic.com/claude-code' class='bib-u'>https://www.anthropic.com/claude-code</a></li>
+<li id='bib-Bai2025OpenpiComet'><span class='bib-a'>Bai, Chao, Chen, Gu, Kim, Li, Li, Lin, et al.</span> (2025). <span class='bib-t'>Openpi Comet: Competition Solution For 2025 BEHAVIOR Challenge</span>. <span class='bib-v'>arXiv preprint arXiv:2512.10071</span>.</li>
+<li id='bib-Black2024Pi0'><span class='bib-a'>Black, Brown, Driess, Esmail, Equi, Finn, Fusai, Groom, et al.</span> (2024). <span class='bib-t'>π₀: A Vision-Language-Action Flow Model for General Robot Control</span>. <span class='bib-v'>arXiv preprint arXiv:2410.24164</span>.</li>
+<li id='bib-BostonDynamicsAtlas2025'><span class='bib-a'>Boston Dynamics</span> (2025). <span class='bib-t'>Atlas - Boston Dynamics</span>. <a href='https://bostondynamics.com/atlas/' class='bib-u'>https://bostondynamics.com/atlas/</a></li>
+<li id='bib-Brohan2023RT2'><span class='bib-a'>Brohan, et al.</span> (2023). <span class='bib-t'>RT-2: Vision-Language-Action Models Transfer Web Knowledge to Robotic Control</span>. <span class='bib-v'>arXiv preprint arXiv:2307.15818</span>.</li>
+<li id='bib-Brown2020FewShot'><span class='bib-a'>Brown, Mann, Ryder, Subbiah, Kaplan, Dhariwal, Neelakantan, Shyam, et al.</span> (2020). <span class='bib-t'>Language Models are Few-Shot Learners</span>. <span class='bib-v'>Advances in Neural Information Processing Systems 33 (NeurIPS 2020)</span>.</li>
+<li id='bib-Eloundou2023GPTs'><span class='bib-a'>Eloundou, Manning, Mishkin, Rock</span> (2023). <span class='bib-t'>GPTs are GPTs: An Early Look at the Labor Market Impact Potential of Large Language Models</span>. <span class='bib-v'>arXiv preprint arXiv:2303.10130</span>.</li>
+<li id='bib-Huang2022InnerMonologue'><span class='bib-a'>Huang, Xia, Xiao, Chan, Liang, Florence, Zeng, Tompson, et al.</span> (2022). <span class='bib-t'>Inner Monologue: Embodied Reasoning through Planning with Language Models</span>. <span class='bib-v'>Conference on Robot Learning (CoRL)</span>.</li>
+<li id='bib-Larchenko2025BEHAVIOR'><span class='bib-a'>Larchenko, Zarin, Karnatak</span> (2025). <span class='bib-t'>Task adaptation of Vision-Language-Action model: 1st Place Solution for the 2025 BEHAVIOR Challenge</span>. <span class='bib-v'>arXiv preprint arXiv:2512.06951</span>.</li>
+<li id='bib-Li2024Behavior1K'><span class='bib-a'>Li, et al.</span> (2024). <span class='bib-t'>BEHAVIOR-1K: A Human-Centered, Embodied AI Benchmark with 1,000 Everyday Activities and Realistic Simulation</span>. <span class='bib-v'>arXiv preprint arXiv:2403.09227</span>.</li>
+<li id='bib-Liang2023CodeAsPolicies'><span class='bib-a'>Liang, Huang, Xia, Xu, Hausman, Ichter, Florence, Zeng</span> (2023). <span class='bib-t'>Code as Policies: Language Model Programs for Embodied Control</span>. <span class='bib-v'>IEEE International Conference on Robotics and Automation (ICRA)</span>.</li>
+<li id='bib-Mon-Williams2025ELLMER'><span class='bib-a'>Mon-Williams, Li, Long, Du, Lucas</span> (2025). <span class='bib-t'>Embodied large language models enable robots to complete complex tasks in unpredictable environments</span>. <span class='bib-v'>Nature Machine Intelligence</span>.</li>
+<li id='bib-Shi2026ERL'><span class='bib-a'>Shi, Chen, Jiang, Song, Yang, Zhao</span> (2026). <span class='bib-t'>Experiential Reinforcement Learning</span>. <span class='bib-v'>arXiv preprint arXiv:2602.13949</span>.</li>
+<li id='bib-Shinn2023Reflexion'><span class='bib-a'>Shinn, Cassano, Berman, Gopinath, Narasimhan, Yao</span> (2023). <span class='bib-t'>Reflexion: Language Agents with Verbal Reinforcement Learning</span>. <span class='bib-v'>Advances in Neural Information Processing Systems (NeurIPS)</span>.</li>
+<li id='bib-Singh2023ProgPrompt'><span class='bib-a'>Singh, Blukis, Mousavian, Goyal, Xu, Tremblay, Fox, Thomason, et al.</span> (2023). <span class='bib-t'>ProgPrompt: Generating Situated Robot Task Plans using Large Language Models</span>. <span class='bib-v'>IEEE International Conference on Robotics and Automation (ICRA)</span>.</li>
+<li id='bib-Behavior1KChallenge'><span class='bib-a'>Stanford Vision and Learning Lab</span> (2025). <span class='bib-t'>BEHAVIOR Challenge</span>. <a href='https://behavior.stanford.edu/challenge/' class='bib-u'>https://behavior.stanford.edu/challenge/</a></li>
+<li id='bib-Behavior1KLeaderboard'><span class='bib-a'>Stanford Vision and Learning Lab</span> (2025). <span class='bib-t'>BEHAVIOR Challenge: Leaderboard</span>. <a href='https://behavior.stanford.edu/challenge/leaderboard.html' class='bib-u'>https://behavior.stanford.edu/challenge/leaderboard.html</a></li>
+<li id='bib-Behavior1KEvaluation'><span class='bib-a'>Stanford Vision and Learning Lab</span> (2025). <span class='bib-t'>BEHAVIOR Challenge: Evaluation Protocol</span>. <a href='https://behavior.stanford.edu/challenge/evaluation.html' class='bib-u'>https://behavior.stanford.edu/challenge/evaluation.html</a></li>
+<li id='bib-Wang2023Voyager'><span class='bib-a'>Wang, Xie, Jiang, Mandlekar, Xiao, Zhu, Fan, Anandkumar</span> (2023). <span class='bib-t'>Voyager: An Open-Ended Embodied Agent with Large Language Models</span>. <span class='bib-v'>arXiv preprint arXiv:2305.16291</span>.</li>
+<li id='bib-Yang2023Octopus'><span class='bib-a'>Yang, Dong, Liu, Li, Wang, Jiang, Tan, Kang, et al.</span> (2023). <span class='bib-t'>Octopus: Embodied Vision-Language Programmer from Environmental Feedback</span>. <span class='bib-v'>arXiv preprint arXiv:2310.08588</span>.</li>
+<li id='bib-Yang2024SWEAgent'><span class='bib-a'>Yang, Jimenez, Wettig, Lieret, Yao, Narasimhan, Press</span> (2024). <span class='bib-t'>SWE-agent: Agent-Computer Interfaces Enable Automated Software Engineering</span>. <span class='bib-v'>Advances in Neural Information Processing Systems (NeurIPS)</span>.</li>
+<li id='bib-Zhao2023ExpeL'><span class='bib-a'>Zhao, Huang, Xu, Lin, Liu, Huang</span> (2024). <span class='bib-t'>ExpeL: LLM Agents Are Experiential Learners</span>. <span class='bib-v'>Proceedings of the AAAI Conference on Artificial Intelligence (AAAI-24)</span>.</li>
+<li id='bib-Zhou2025WALLE2'><span class='bib-a'>Zhou, Zhou, Yang, Long, Ye, Jiang, Zhang</span> (2025). <span class='bib-t'>WALL-E 2.0: World Alignment by NeuroSymbolic Learning improves World Model-based LLM Agents</span>. <span class='bib-v'>arXiv preprint arXiv:2504.15785</span>.</li>
+<li id='bib-Zhu2023Ghost'><span class='bib-a'>Zhu, Chen, Tian, Tao, Su, Yang, Huang, Li, et al.</span> (2023). <span class='bib-t'>Ghost in the Minecraft: Generally Capable Agents for Open-World Environments via Large Language Models with Text-based Knowledge and Memory</span>. <span class='bib-v'>arXiv preprint arXiv:2305.17144</span>.</li>
+  </ol>
+
+  <h2 id="originality"><span class="htext">Statement of Originality</span></h2>
+  <details class="verb"><summary>Statement of Originality<span class="verb-meta">declaration</span></summary>
+  <div style="padding:0 1.1rem 1rem">
+<ul><li><p>I have read and understood the ECS Academic Integrity information and the University’s Academic Integrity Guidance for Students.</p></li><li><p>I am aware that failure to act in accordance with the Regulations Governing Academic Integrity may lead to the imposition of penalties which, for the most serious cases, may include termination of programme.</p></li><li><p>I consent to the University copying and distributing any or all of my work in any form and using third parties (who may be based outside the EU/EEA) to verify whether my work contains plagiarised material, and for quality assurance purposes.</p></li></ul>
+<p>We expect you to acknowledge all sources of information (e.g. ideas, algorithms, data) using citations. You must also put quotation marks around any sections of text that you have copied without paraphrasing. If any figures or tables have been taken or modified from another source, you must explain this in the caption and cite the original source.</p>
+<p><strong>I have acknowledged all sources, and identified any content taken from elsewhere.</strong></p>
+<p>If you have used any code (e.g. open-source code), reference designs, or similar resources that have been produced by anyone else, you must list them in the box below. In the report, you must explain what was used and how it relates to the work you have done.</p>
+<p><strong>Resources used:</strong></p>
+<ul><li><p>The symbolic API design in OmniGibson was informed by OctoGibson code (<a href='https://github.com/dongyh20/Octopus/tree/master' class='url'>https://github.com/dongyh20/Octopus/tree/master</a>).</p></li><li><p>My entire codebase, including the symbolic API, was developed agentically with Claude Code.</p></li><li><p>AI was used to assist in editing parts of the report. A full disclosure of AI-edited and AI-generated text is provided in Appendix <a href='#sec:ai_disclaimer' class='xref'>A.6</a>.</p></li></ul>
+<p>You can consult with module teaching staff/demonstrators, but you should not show anyone else your work (this includes uploading your work to publicly-accessible repositories e.g. Github, unless expressly permitted by the module leader), or help them to do theirs. For individual assignments, we expect you to work on your own. For group assignments, we expect that you work only with your allocated group. You must get permission in writing from the module teaching staff before you seek outside assistance, e.g. a proofreading service, and declare it here.</p>
+<p><strong>I did all the work myself, or with my allocated group, and have not helped anyone else.</strong></p>
+<p>We expect that you have not fabricated, modified or distorted any data, evidence, references, experimental results, or other material used or presented in the report. You must clearly describe your experiments and how the results were obtained, and include all data, source code and/or designs (either in the report, or submitted as a separate file) so that your results could be reproduced.</p>
+<p><strong>The material in the report is genuine, and I have included all my data/code/designs.</strong></p>
+<p>We expect that you have not previously submitted any part of this work for another assessment. You must get permission in writing from the module teaching staff before re-using any of your previously submitted work for this assessment.</p>
+<p><strong>I have not submitted any part of this work for another assessment.</strong></p>
+<p>If your work involved research/studies (including surveys) on human participants, their cells or data, or on animals, you must have been granted ethical approval before the work was carried out, and any experiments must have followed these requirements. You must give details of this in the report, and list the ethical approval reference number(s) in the box below.</p>
+<p><strong>My work did not involve human participants, their cells or data, or animals.</strong></p>
+<p>\noindentECS Statement of Originality Template, updated August 2018, Alex Weddell (<a href='mailto:aiofficer@ecs.soton.ac.uk'>aiofficer@ecs.soton.ac.uk</a>)</p></div></details>
+
+  <footer>
+    Benjamin Poole &middot; University of Southampton &middot; Web edition rendered from the original LaTeX source.
+    The <a href="../dissertation/latex/main.pdf">submitted PDF</a> is authoritative.
+  </footer>
+</article>
+</div>
+
+<script>
+(function(){
+  var root=document.documentElement;
+  try{var s=localStorage.getItem('theme'); if(s) root.setAttribute('data-theme',s);}catch(e){}
+  document.getElementById('theme').addEventListener('click',function(){
+    var dark=matchMedia('(prefers-color-scheme: dark)').matches;
+    var cur=root.getAttribute('data-theme')||(dark?'dark':'light');
+    var next=cur==='dark'?'light':'dark';
+    root.setAttribute('data-theme',next);
+    try{localStorage.setItem('theme',next);}catch(e){}
+  });
+
+  var prog=document.getElementById('prog');
+  addEventListener('scroll',function(){
+    var h=document.documentElement.scrollHeight-innerHeight;
+    prog.style.width=(h>0?(scrollY/h*100):0)+'%';
+  },{passive:true});
+
+  var links={}, heads=[];
+  document.querySelectorAll('.toc-list a').forEach(function(a){
+    var id=a.getAttribute('href').slice(1); links[id]=a;
+    var el=document.getElementById(id); if(el) heads.push(el);
+  });
+  var cur=null;
+  function spy(){
+    var best=null;
+    heads.forEach(function(el){
+      if(el.getBoundingClientRect().top<=120) best=el;
+    });
+    if(best&&best!==cur){
+      if(cur&&links[cur.id]) links[cur.id].classList.remove('active');
+      cur=best;
+      var a=links[cur.id];
+      if(a){a.classList.add('active');
+        var box=a.closest('aside');
+        if(box&&box.scrollHeight>box.clientHeight){
+          var t=a.offsetTop-box.clientHeight/2;
+          box.scrollTo({top:t,behavior:'smooth'});
+        }
+      }
+    }
+  }
+  addEventListener('scroll',spy,{passive:true}); spy();
+})();
+</script>
+</body>
+</html>
