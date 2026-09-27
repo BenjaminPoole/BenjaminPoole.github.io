@@ -1167,17 +1167,16 @@ async function startTranscription() {
 async function processFile(idx) {
   const entry = fileResults[idx];
 
-  // ── Decode audio ──────────────────────────────────
+  // ── Open the audio stream ─────────────────────────
+  // Long files are decoded a piece at a time as transcription reaches them,
+  // so only a few minutes of PCM is ever held in memory.
   entry.status   = 'decoding';
   entry.progress = 0;
   renderFileList();
 
-  let audio;
+  let source;
   try {
-    audio = await decodeAudio(entry.file, (frac) => {
-      entry.progress = Math.round(frac * 100);
-      renderFileList();
-    });
+    source = await openAudio(entry.file);
   } catch (err) {
     entry.status = 'error';
     entry.error  = 'Audio decode failed: ' + err.message;
@@ -1189,7 +1188,7 @@ async function processFile(idx) {
 
   // ── Transcribe in overlapping windows ─────────────
   entry.status   = 'transcribing';
-  entry.duration = audio.length / SR;
+  entry.duration = source.duration;
   const started  = performance.now();
   renderFileList();
 
@@ -1198,109 +1197,156 @@ async function processFile(idx) {
   const chunkLen  = CHUNK_S  * SR;
   const strideLen = STRIDE_S * SR;
   const stepLen   = chunkLen - 2 * strideLen;
+  const estLen    = Math.max(1, source.duration * SR);
 
-  const windows = [];
-  for (let coreStart = 0; coreStart < audio.length; coreStart += stepLen) {
-    const sliceStart = Math.max(0, coreStart - strideLen);
-    const sliceEnd   = Math.min(audio.length, coreStart + stepLen + strideLen);
-    const isFirst    = coreStart === 0;
-    const isLast     = coreStart + stepLen >= audio.length;
-    windows.push({
-      sliceStart, sliceEnd,
-      coreStart: isFirst ? 0 : (coreStart - sliceStart) / SR,
-      coreEnd:   isLast ? (sliceEnd - sliceStart) / SR
-                        : (coreStart + stepLen - sliceStart) / SR,
-    });
-  }
+  // Rolling PCM buffer: `buf` holds samples [bufStart, bufStart + buf.length).
+  let buf = new Float32Array(0), bufStart = 0, ended = false;
+  const bufEnd = () => bufStart + buf.length;
+  const fill = async (upTo) => {
+    while (!ended && bufEnd() < upTo) {
+      const { value, done } = await source.chunks.next();
+      if (done) { ended = true; break; }
+      const grown = new Float32Array(buf.length + value.length);
+      grown.set(buf);
+      grown.set(value, buf.length);
+      buf = grown;
+    }
+  };
+  const drop = (before) => {
+    before = Math.min(before, bufEnd());
+    if (before > bufStart) { buf = buf.slice(before - bufStart); bufStart = before; }
+  };
 
   const allTokens = [];
   const stop = () => cancelRequested;
+  const refreshText = () => {
+    entry.segments = buildSegments(allTokens);
+    entry.text     = entry.segments.map(s => s.text).join(' ');
+  };
 
   try {
-    for (let w = 0; w < windows.length; w++) {
+    for (let coreStart = 0; ; coreStart += stepLen) {
       if (cancelRequested) { entry.status = 'cancelled'; renderFileList(); return; }
 
-      const { sliceStart, sliceEnd, coreStart, coreEnd } = windows[w];
-      const slice = audio.slice(sliceStart, sliceEnd);
-      if (slice.length < 0.1 * SR) continue;
+      // One sample past the window tells us whether this is the last one.
+      try {
+        await fill(coreStart + stepLen + strideLen + 1);
+      } catch (err) {
+        throw new Error('Audio decode failed: ' + (err?.message || err));
+      }
+      const avail = bufEnd();
+      if (coreStart >= avail) break;
 
-      // Normalise over the real audio, then zero-pad up to the encoder's minimum window.
-      const { feats, frames } = logMelFeatures(slice);
-      const total = Math.max(frames, MIN_ENC_FRAMES);
-      const input = padFeatures(feats, frames, total);
+      const sliceStart = Math.max(0, coreStart - strideLen);
+      const sliceEnd   = Math.min(avail, coreStart + stepLen + strideLen);
+      const isFirst    = coreStart === 0;
+      const isLast     = coreStart + stepLen >= avail;
+      const winCoreStart = isFirst ? 0 : (coreStart - sliceStart) / SR;
+      const winCoreEnd   = isLast ? (sliceEnd - sliceStart) / SR
+                                  : (coreStart + stepLen - sliceStart) / SR;
 
-      const tEnc = performance.now();
-      const enc = await encode(input, total, frames);
-      entry.encTime += (performance.now() - tEnc) / 1000;
-      const secPerFrame = (frames * HOP / SR) / Math.max(enc.frames, 1);
+      const slice = buf.slice(sliceStart - bufStart, sliceEnd - bufStart);
+      drop(coreStart + stepLen - strideLen);   // the next window's sliceStart
 
-      const tDec = performance.now();
-      const tokens = await decodeTDT(enc, secPerFrame, stop);
-      entry.decTime += (performance.now() - tDec) / 1000;
-      entry.decCalls += enc.frames;
-      const offset = sliceStart / SR;
-      for (const tk of tokens) {
-        const mid = (tk.start + tk.end) / 2;
-        if (mid >= coreStart && mid <= coreEnd) {
-          allTokens.push({ id: tk.id, start: tk.start + offset, end: tk.end + offset });
+      if (slice.length >= 0.1 * SR) {
+        // Normalise over the real audio, then zero-pad up to the encoder's minimum window.
+        const { feats, frames } = logMelFeatures(slice);
+        const total = Math.max(frames, MIN_ENC_FRAMES);
+        const input = padFeatures(feats, frames, total);
+
+        const tEnc = performance.now();
+        const enc = await encode(input, total, frames);
+        entry.encTime += (performance.now() - tEnc) / 1000;
+        const secPerFrame = (frames * HOP / SR) / Math.max(enc.frames, 1);
+
+        const tDec = performance.now();
+        const tokens = await decodeTDT(enc, secPerFrame, stop);
+        entry.decTime += (performance.now() - tDec) / 1000;
+        entry.decCalls += enc.frames;
+        const offset = sliceStart / SR;
+        for (const tk of tokens) {
+          const mid = (tk.start + tk.end) / 2;
+          if (mid >= winCoreStart && mid <= winCoreEnd) {
+            allTokens.push({ id: tk.id, start: tk.start + offset, end: tk.end + offset });
+          }
         }
       }
 
-      entry.progress = Math.round(((w + 1) / windows.length) * 100);
-      entry.segments = buildSegments(allTokens);
-      entry.text     = entry.segments.map(s => s.text).join(' ');
+      entry.progress = isLast ? 100 : Math.min(99, Math.round((coreStart + stepLen) / estLen * 100));
+      // Only the first 400 characters are previewed, so stop rebuilding the
+      // segments once there is that much text; on a multi-hour file doing it
+      // every window would be quadratic.
+      if (entry.text.length <= 400) refreshText();
       renderFileList();
       await nextFrame();
+      if (isLast) break;
     }
 
     if (cancelRequested) { entry.status = 'cancelled'; renderFileList(); return; }
 
-    entry.segments = buildSegments(allTokens);
-    entry.text     = entry.segments.map(s => s.text).join(' ');
+    refreshText();
+    entry.duration = bufEnd() / SR;
     entry.elapsed  = (performance.now() - started) / 1000;
     entry.progress = 100;
     entry.status   = 'done';
   } catch (err) {
     entry.status = cancelRequested ? 'cancelled' : 'error';
     entry.error  = err.message;
+  } finally {
+    source.chunks.return?.();
   }
 
   renderFileList();
 }
 
 // ─────────────────────────────────────────────────────────────────
-// Audio decoding — resample to mono 16 kHz Float32Array
+// Audio decoding — mono 16 kHz Float32Array pieces
 //
 // decodeAudioData() expands the whole file to float PCM at its native
 // rate before resampling, and Chromium gives up once that single buffer
-// passes 2 GiB — about 1h50m of 48 kHz stereo. MP3 is a stream of
-// self-contained frames, so long MP3s are split at frame boundaries and
-// decoded in pieces instead.
+// passes 2 GiB — about 1h50m of 48 kHz stereo. Even the 16 kHz mono result
+// of a 10-hour recording is 2.4 GB. So long MP3s are split at frame
+// boundaries, and the AAC track of long MP4/M4A/MOV files is pulled out
+// packet by packet and re-wrapped as ADTS, then decoded a few minutes at a
+// time. openAudio() returns { duration, chunks }, where `chunks` is an async
+// iterator of consecutive PCM pieces.
 // ─────────────────────────────────────────────────────────────────
 const DECODE_CHUNK_S     = 600;        // seconds of audio per decodeAudioData call
-const DECODE_CHUNK_BYTES = 1 << 30;    // native PCM size above which MP3s are chunked
+const DECODE_CHUNK_BYTES = 1 << 30;    // native PCM size above which files are chunked
+const MP4_WHOLE_MAX      = 512 << 20;  // MP4s larger than this are never read in whole
 const MP3_LEAD_IN_FRAMES = 10;         // extra frames ahead of each chunk to prime the bit reservoir
+const AAC_LEAD_IN_FRAMES = 4;          // extra frames ahead of each chunk to prime the MDCT overlap
 
-async function decodeAudio(file, onProgress) {
-  const bytes = new Uint8Array(await file.arrayBuffer());
+async function openAudio(file) {
   const ctx = new OfflineAudioContext(1, 1, SR);
 
-  const mp3 = scanMp3(bytes);
-  if (mp3 && mp3.pcmBytes > DECODE_CHUNK_BYTES) {
-    return decodeMp3Chunked(ctx, bytes, mp3, onProgress);
+  const mp4 = await scanMp4Aac(file);
+  if (mp4 && (mp4.pcmBytes > DECODE_CHUNK_BYTES || file.size > MP4_WHOLE_MAX)) {
+    return { duration: mp4.duration, chunks: decodeAacChunked(ctx, file, mp4) };
   }
 
+  const bytes = new Uint8Array(await file.arrayBuffer());
+  const mp3 = scanMp3(bytes);
+  if (mp3 && mp3.pcmBytes > DECODE_CHUNK_BYTES) {
+    return {
+      duration: mp3.frames.length * mp3.spf / mp3.sampleRate,
+      chunks:   decodeMp3Chunked(ctx, bytes, mp3),
+    };
+  }
+
+  let pcm;
   try {
-    return toMono(await ctx.decodeAudioData(bytes.buffer));
+    pcm = toMono(await ctx.decodeAudioData(bytes.buffer));
   } catch (err) {
     if (!mp3 && file.size > 64 * 1024 * 1024) {
       throw new Error(
         `${err?.message || err}. Very long files can exceed the browser decoder's ` +
-        'memory limit; convert this one to MP3, which is decoded in pieces, or split it.'
+        'memory limit; convert this one to MP3 or M4A (AAC), which are decoded in pieces, or split it.'
       );
     }
     throw err;
   }
+  return { duration: pcm.length / SR, chunks: (async function* () { yield pcm; })() };
 }
 
 function toMono(audioBuffer) {
@@ -1316,13 +1362,10 @@ function toMono(audioBuffer) {
   return mono;
 }
 
-async function decodeMp3Chunked(ctx, bytes, mp3, onProgress) {
+async function* decodeMp3Chunked(ctx, bytes, mp3) {
   const { frames, spf, sampleRate } = mp3;
   const ratio    = SR / sampleRate;
   const perChunk = Math.ceil(DECODE_CHUNK_S * sampleRate / spf);
-  const nChunks  = Math.ceil(frames.length / perChunk);
-  const out      = new Float32Array(Math.round(frames.length * spf * ratio) + nChunks);
-  let written    = 0;
 
   for (let start = 0; start < frames.length; start += perChunk) {
     const stop = Math.min(start + perChunk, frames.length);
@@ -1339,14 +1382,26 @@ async function decodeMp3Chunked(ctx, bytes, mp3, onProgress) {
     // from the front so the browser's gapless trimming of the encoder delay
     // (driven by the Xing header) is kept rather than padded back as silence.
     const want = Math.round((stop - start) * spf * ratio);
-    const keep = start === 0 ? pcm.subarray(0, want) : pcm.subarray(Math.max(0, pcm.length - want));
-    out.set(keep, written);
-    written += keep.length;
-
-    onProgress?.(stop / frames.length);
-    await nextFrame();
+    yield start === 0 ? pcm.subarray(0, want) : pcm.subarray(Math.max(0, pcm.length - want));
   }
-  return out.subarray(0, written);
+}
+
+async function* decodeAacChunked(ctx, file, mp4) {
+  const { sizes, frameSec, skipSec } = mp4;
+  const perChunk = Math.ceil(DECODE_CHUNK_S / frameSec);
+  const skip     = Math.round(skipSec * SR);
+
+  for (let start = 0; start < sizes.length; start += perChunk) {
+    const stop = Math.min(start + perChunk, sizes.length);
+    const lead = Math.max(0, start - AAC_LEAD_IN_FRAMES);
+    const adts = await readAdts(file, mp4, lead, stop);
+    const pcm  = toMono(await ctx.decodeAudioData(adts.buffer));
+
+    // Same alignment rule as MP3: drop the lead-in by counting back from the end.
+    // The first chunk instead drops the encoder delay from the front.
+    const want = Math.round((stop - start) * frameSec * SR);
+    yield start === 0 ? pcm.subarray(skip, want) : pcm.subarray(Math.max(0, pcm.length - want));
+  }
 }
 
 // ── MP3 frame walker ─────────────────────────────────
@@ -1416,6 +1471,226 @@ function scanMp3(b) {
 
   if (frames.length < 2 || covered < 0.8 * (end - audioStart)) return null;
   return { frames, spf, sampleRate, channels, pcmBytes: frames.length * spf * channels * 4 };
+}
+
+// ── MP4 AAC track reader ─────────────────────────────
+// Reads only the moov box and the audio packets, so the (usually much larger)
+// video data is never loaded. Returns null for anything other than a plain
+// (non-fragmented) MP4/MOV with an AAC track, and the whole file is then
+// handed to the browser's decoder as before.
+const AAC_RATES      = [96000, 88200, 64000, 48000, 44100, 32000, 24000, 22050, 16000, 12000, 11025, 8000, 7350];
+const MP4_READ_GAP   = 1 << 20;    // frames closer than this share one file read
+const MP4_READ_MAX   = 64 << 20;   // cap on a single file read
+const ADTS_MAX_FRAME = 8191;       // 13-bit frame length field
+
+function fourcc(dv, p) {
+  return String.fromCharCode(dv.getUint8(p), dv.getUint8(p + 1), dv.getUint8(p + 2), dv.getUint8(p + 3));
+}
+
+function* mp4Boxes(dv, start, end) {
+  let p = start;
+  while (p + 8 <= end) {
+    let size = dv.getUint32(p), hdr = 8;
+    const type = fourcc(dv, p + 4);
+    if (size === 1) { size = Number(dv.getBigUint64(p + 8)); hdr = 16; }
+    else if (size === 0) size = end - p;
+    if (size < hdr || p + size > end) return;
+    yield { type, start: p + hdr, end: p + size };
+    p += size;
+  }
+}
+
+function mp4Child(dv, box, ...path) {
+  for (const type of path) {
+    let found = null;
+    for (const b of mp4Boxes(dv, box.start, box.end)) if (b.type === type) { found = b; break; }
+    if (!found) return null;
+    box = found;
+  }
+  return box;
+}
+
+async function scanMp4Aac(file) {
+  try {
+    // Walk the top-level boxes by their headers alone to find moov.
+    let p = 0, moov = null;
+    while (p + 8 <= file.size) {
+      const h = new DataView(await file.slice(p, p + 16).arrayBuffer());
+      let size = h.getUint32(0), hdr = 8;
+      const type = fourcc(h, 4);
+      if (p === 0 && type !== 'ftyp') return null;
+      if (size === 1) { size = Number(h.getBigUint64(8)); hdr = 16; }
+      else if (size === 0) size = file.size - p;
+      if (size < hdr) return null;
+      if (type === 'moov') { moov = { start: p + hdr, end: p + size }; break; }
+      p += size;
+    }
+    if (!moov || moov.end > file.size || moov.end - moov.start > 256 << 20) return null;
+
+    const dv = new DataView(await file.slice(moov.start, moov.end).arrayBuffer());
+    for (const trak of mp4Boxes(dv, 0, dv.byteLength)) {
+      if (trak.type !== 'trak') continue;
+      const track = readAacTrack(dv, trak);
+      if (track) return track;
+    }
+  } catch { /* malformed: fall back to whole-file decoding */ }
+  return null;
+}
+
+function readAacTrack(dv, trak) {
+  const mdia = mp4Child(dv, trak, 'mdia');
+  const hdlr = mdia && mp4Child(dv, mdia, 'hdlr');
+  if (!hdlr || fourcc(dv, hdlr.start + 8) !== 'soun') return null;
+
+  const mdhd = mp4Child(dv, mdia, 'mdhd');
+  const stbl = mp4Child(dv, mdia, 'minf', 'stbl');
+  if (!mdhd || !stbl) return null;
+  const asc = aacConfig(dv, mp4Child(dv, stbl, 'stsd'));
+  if (!asc) return null;
+
+  const timescale = dv.getUint32(mdhd.start + (dv.getUint8(mdhd.start) === 1 ? 20 : 12));
+  const stts = mp4Child(dv, stbl, 'stts');
+  const stsz = mp4Child(dv, stbl, 'stsz');
+  const stsc = mp4Child(dv, stbl, 'stsc');
+  const stco = mp4Child(dv, stbl, 'stco') || mp4Child(dv, stbl, 'co64');
+  if (!timescale || !stts || !stsz || !stsc || !stco) return null;
+  if (dv.getUint32(stts.start + 4) < 1) return null;
+  const delta = dv.getUint32(stts.start + 12);    // AAC frames all share one duration
+
+  const fixed = dv.getUint32(stsz.start + 4);
+  const n     = dv.getUint32(stsz.start + 8);
+  if (n < 2) return null;                         // fragmented MP4: samples live in moof boxes
+  const sizes = new Uint32Array(n);
+  for (let i = 0; i < n; i++) {
+    sizes[i] = fixed || dv.getUint32(stsz.start + 12 + 4 * i);
+    if (sizes[i] + 7 > ADTS_MAX_FRAME) return null;
+  }
+
+  // Expand the chunk tables into a byte offset per frame.
+  const co64    = stco.type === 'co64';
+  const nChunks = dv.getUint32(stco.start + 4);
+  const chunkAt = (c) => co64 ? Number(dv.getBigUint64(stco.start + 8 + 8 * c))
+                              : dv.getUint32(stco.start + 8 + 4 * c);
+  const offsets = new Float64Array(n);
+  const nRuns   = dv.getUint32(stsc.start + 4);
+  let s = 0;
+  for (let e = 0; e < nRuns && s < n; e++) {
+    const q     = stsc.start + 8 + 12 * e;
+    const first = dv.getUint32(q) - 1;
+    const per   = dv.getUint32(q + 4);
+    const last  = e + 1 < nRuns ? dv.getUint32(q + 12) - 1 : nChunks;
+    for (let c = first; c < last && s < n; c++) {
+      let off = chunkAt(c);
+      for (let k = 0; k < per && s < n; k++) { offsets[s] = off; off += sizes[s]; s++; }
+    }
+  }
+  if (s < n) return null;
+
+  // Encoder delay (priming samples), from the edit list's first non-empty entry.
+  // Raw ADTS decoding keeps these, whereas an MP4 demuxer would trim them.
+  let skipSec = 0;
+  const elst = mp4Child(dv, trak, 'edts', 'elst');
+  if (elst) {
+    const v1 = dv.getUint8(elst.start) === 1, size = v1 ? 20 : 12;
+    for (let e = 0; e < dv.getUint32(elst.start + 4); e++) {
+      const q = elst.start + 8 + e * size + (v1 ? 8 : 4);
+      const mediaTime = v1 ? Number(dv.getBigInt64(q)) : dv.getInt32(q);
+      if (mediaTime === -1) continue;              // empty edit
+      if (mediaTime > 0 && mediaTime < timescale) skipSec = mediaTime / timescale;
+      break;
+    }
+  }
+
+  const frameSec = delta / timescale;
+  const duration = n * frameSec - skipSec;
+  return {
+    offsets, sizes, asc, frameSec, skipSec, duration,
+    pcmBytes: duration * asc.sampleRate * asc.channels * 4,
+  };
+}
+
+/** AudioSpecificConfig from an mp4a sample entry's esds, reduced to what an ADTS header needs. */
+function aacConfig(dv, stsd) {
+  if (!stsd) return null;
+  const entry = stsd.start + 8;                   // skip version/flags and entry_count
+  if (fourcc(dv, entry + 4) !== 'mp4a') return null;
+  const ver  = dv.getUint16(entry + 16);          // QuickTime sound description version
+  const kids = { start: entry + 36 + (ver === 1 ? 16 : ver === 2 ? 36 : 0), end: entry + dv.getUint32(entry) };
+  const esds = mp4Child(dv, kids, 'esds') || mp4Child(dv, kids, 'wave', 'esds');
+  if (!esds) return null;
+
+  let p = esds.start + 4;
+  const desc = () => {
+    const tag = dv.getUint8(p++);
+    let len = 0;
+    for (let i = 0; i < 4; i++) {
+      const b = dv.getUint8(p++);
+      len = (len << 7) | (b & 0x7F);
+      if (!(b & 0x80)) break;
+    }
+    return { tag, len };
+  };
+
+  if (desc().tag !== 0x03) return null;           // ES_Descriptor
+  const flags = dv.getUint8(p + 2);
+  p += 3;
+  if (flags & 0x80) p += 2;
+  if (flags & 0x40) p += 1 + dv.getUint8(p);
+  if (flags & 0x20) p += 2;
+  if (desc().tag !== 0x04) return null;           // DecoderConfigDescriptor
+  if (dv.getUint8(p) !== 0x40) return null;       // MPEG-4 Audio
+  p += 13;
+  const dsi = desc();                             // DecoderSpecificInfo
+  if (dsi.tag !== 0x05 || dsi.len < 2) return null;
+
+  let bit = p * 8;
+  const bits = (k) => {
+    let v = 0;
+    for (let i = 0; i < k; i++, bit++) v = (v << 1) | ((dv.getUint8(bit >> 3) >> (7 - (bit & 7))) & 1);
+    return v;
+  };
+  let aot = bits(5);
+  const freqIdx = bits(4);
+  const chan    = bits(4);
+  if (aot === 5 || aot === 29) { bits(4); aot = bits(5); }   // HE-AAC: ADTS carries the core AAC-LC config
+  if (aot < 1 || aot > 4 || freqIdx >= AAC_RATES.length || chan < 1 || chan > 7) return null;
+  return { profile: aot - 1, freqIdx, chan, sampleRate: AAC_RATES[freqIdx], channels: chan === 7 ? 8 : chan };
+}
+
+/** Read frames [from, to) of the AAC track and wrap each one in an ADTS header. */
+async function readAdts(file, mp4, from, to) {
+  const { offsets, sizes, asc } = mp4;
+  let total = 0;
+  for (let i = from; i < to; i++) total += sizes[i] + 7;
+  const out = new Uint8Array(total);
+
+  let w = 0, i = from;
+  while (i < to) {
+    // Audio frames are interleaved with video; read runs that sit close together at once.
+    const readStart = offsets[i];
+    let readEnd = readStart + sizes[i], j = i + 1;
+    while (j < to && offsets[j] >= readEnd && offsets[j] - readEnd <= MP4_READ_GAP &&
+           offsets[j] + sizes[j] - readStart <= MP4_READ_MAX) {
+      readEnd = offsets[j] + sizes[j];
+      j++;
+    }
+    const bytes = new Uint8Array(await file.slice(readStart, readEnd).arrayBuffer());
+    if (bytes.length < readEnd - readStart) throw new Error('MP4 audio data is truncated');
+
+    for (; i < j; i++) {
+      const len = sizes[i] + 7;
+      out[w]     = 0xFF;
+      out[w + 1] = 0xF1;                          // MPEG-4, no CRC
+      out[w + 2] = (asc.profile << 6) | (asc.freqIdx << 2) | (asc.chan >> 2);
+      out[w + 3] = ((asc.chan & 3) << 6) | (len >> 11);
+      out[w + 4] = (len >> 3) & 0xFF;
+      out[w + 5] = ((len & 7) << 5) | 0x1F;
+      out[w + 6] = 0xFC;
+      out.set(bytes.subarray(offsets[i] - readStart, offsets[i] - readStart + sizes[i]), w + 7);
+      w += len;
+    }
+  }
+  return out;
 }
 
 // ─────────────────────────────────────────────────────────────────
