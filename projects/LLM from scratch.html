@@ -245,7 +245,7 @@ details.verb .tbl-scroll{padding:0 1rem 1rem;max-height:30rem;overflow:auto}
   </ul>
 
   <figure class="fig">
-    <span class="shot"><img src="../assets/llm/slide-03.webp" alt="Slide showing the tokenizer vocabulary as a JSON file mapping words to integer IDs, with a hand-drawn sketch of the word 'hello' splitting into two tokens, each becoming a vector"></span>
+    <span class="shot"><img src="../assets/llm/slide-03.webp" alt="Slide showing the tokenizer vocabulary as a JSON file mapping words to integer IDs, with a hand-drawn sketch of the word 'hello' splitting into two tokens, each becoming a vector" width="1280" height="720" loading="lazy" decoding="async"></span>
     <figcaption><span class="fignum">Figure 1.</span> The vocabulary is just a map from string to integer ID
     (right); each ID indexes a row of the embedding table, so <code>hello</code> becomes a pair of tokens and
     each token becomes a vector.</figcaption>
@@ -256,7 +256,7 @@ details.verb .tbl-scroll{padding:0 1rem 1rem;max-height:30rem;overflow:auto}
   <p>The model is 14.5 million parameters.</p>
 
   <figure class="fig">
-    <span class="shot"><img src="../assets/llm/slide-05.webp" alt="Hand-drawn architecture diagram: tokenizer, embedding table, transformer self-attention, feed-forward layer with residual connections, repeated eight times, then a linear projection back to token space and argmax token selection" loading="lazy" decoding="async"></span>
+    <span class="shot"><img src="../assets/llm/slide-05.webp" alt="Hand-drawn architecture diagram: tokenizer, embedding table, transformer self-attention, feed-forward layer with residual connections, repeated eight times, then a linear projection back to token space and argmax token selection" loading="lazy" decoding="async" width="1280" height="720"></span>
     <figcaption><span class="fignum">Figure 2.</span> The whole model on one page: tokenizer &rarr; embedding
     &rarr; self-attention &rarr; feed-forward with residual connections, that decoder block eight times over,
     then a linear projection back to token space and a token selected by argmax.</figcaption>
@@ -265,7 +265,7 @@ details.verb .tbl-scroll{padding:0 1rem 1rem;max-height:30rem;overflow:auto}
   <h3 id="sec:architecture-cont">Hidden state progression</h3>
 
   <figure class="fig">
-    <span class="shot"><img src="../assets/llm/slide-06.webp" alt="Diagram of a transformer as a grid: one row per input token, with hidden states flowing left to right through attention and MLP blocks, and a highlighted path showing information moving between token positions before the final prediction" loading="lazy" decoding="async"></span>
+    <span class="shot"><img src="../assets/llm/slide-06.webp" alt="Diagram of a transformer as a grid: one row per input token, with hidden states flowing left to right through attention and MLP blocks, and a highlighted path showing information moving between token positions before the final prediction" loading="lazy" decoding="async" width="1280" height="720"></span>
     <figcaption><span class="fignum">Figure 3.</span> Each row is a token and each column a layer: the hidden
     state for a position is rewritten layer by layer, pulling in information from earlier positions, until the
     last position predicts the next token. Figure adapted from
@@ -282,7 +282,7 @@ details.verb .tbl-scroll{padding:0 1rem 1rem;max-height:30rem;overflow:auto}
   childrens stories designed for small models, with built in instruction following.</p>
 
   <figure class="fig">
-    <span class="shot"><img src="../assets/llm/slide-02.webp" alt="Terminal output: from the prompt 'Summary: a boy Max enters a dark cave and there are monsters. Story:' the model generates a coherent multi-sentence story about Max exploring a cave" loading="lazy" decoding="async"></span>
+    <span class="shot"><img src="../assets/llm/slide-02.webp" alt="Terminal output: from the prompt 'Summary: a boy Max enters a dark cave and there are monsters. Story:' the model generates a coherent multi-sentence story about Max exploring a cave" loading="lazy" decoding="async" width="1280" height="720"></span>
     <figcaption><span class="fignum">Figure 4.</span> A generation from the trained model. The prompt is the
     summary line at the top; everything after it is the model&rsquo;s.</figcaption>
   </figure>
@@ -297,14 +297,14 @@ details.verb .tbl-scroll{padding:0 1rem 1rem;max-height:30rem;overflow:auto}
   together.</p>
 
   <figure class="fig">
-    <span class="shot"><img src="../assets/llm/slide-07.webp" alt="2D PCA scatter plot of the initial word embeddings for the story sentence, with words spread along a diagonal from 'because' and 'Story' at one end to 'too', 'didn' and 't' at the other" loading="lazy" decoding="async"></span>
+    <span class="shot"><img src="../assets/llm/slide-07.webp" alt="2D PCA scatter plot of the initial word embeddings for the story sentence, with words spread along a diagonal from 'because' and 'Story' at one end to 'too', 'didn' and 't' at the other" loading="lazy" decoding="async" width="1280" height="720"></span>
     <figcaption><span class="fignum">Figure 5.</span> 2D PCA of the initial word embeddings for
     <em>Story: Ben didn&rsquo;t cross the road because he was too tired</em>. These are the raw table lookups,
     so position in the sentence plays no part yet.</figcaption>
   </figure>
 
   <figure class="fig">
-    <span class="shot"><img src="../assets/llm/slide-08.webp" alt="2D PCA scatter plot of the final hidden states for the same sentence, on a much larger axis range, with 'he' and 'Ben' grouped at the top and the punctuation token far to the right" loading="lazy" decoding="async"></span>
+    <span class="shot"><img src="../assets/llm/slide-08.webp" alt="2D PCA scatter plot of the final hidden states for the same sentence, on a much larger axis range, with 'he' and 'Ben' grouped at the top and the punctuation token far to the right" loading="lazy" decoding="async" width="1280" height="720"></span>
     <figcaption><span class="fignum">Figure 6.</span> The same words after the decoder blocks. Note the axes:
     the spread is two orders of magnitude larger than in Figure 5, and the grouping has changed &mdash;
     <em>he</em> now sits beside <em>Ben</em>.</figcaption>
@@ -313,7 +313,7 @@ details.verb .tbl-scroll{padding:0 1rem 1rem;max-height:30rem;overflow:auto}
   <h2 id="sec:positional"><span class="secnum">5</span>Positional embeddings</h2>
 
   <figure class="fig">
-    <span class="shot"><img src="../assets/llm/slide-09.webp" alt="Scatter plot of several hundred numbered positional embeddings, spread out with no obvious clustering, numbers running from 1 to about 580" loading="lazy" decoding="async"></span>
+    <span class="shot"><img src="../assets/llm/slide-09.webp" alt="Scatter plot of several hundred numbered positional embeddings, spread out with no obvious clustering, numbers running from 1 to about 580" loading="lazy" decoding="async" width="1280" height="720"></span>
     <figcaption><span class="fignum">Figure 7.</span> The learned positional embeddings, one per position in
     the context window.</figcaption>
   </figure>
@@ -323,14 +323,14 @@ details.verb .tbl-scroll{padding:0 1rem 1rem;max-height:30rem;overflow:auto}
   <p>Here we analyse the model&rsquo;s learned representations again, but for a larger sentence.</p>
 
   <figure class="fig">
-    <span class="shot"><img src="../assets/llm/slide-10.webp" alt="2D PCA of initial word embeddings for a longer passage, showing a dense central cloud of common words with pronouns and sentence-initial capitalised words pushed to the edges" loading="lazy" decoding="async"></span>
+    <span class="shot"><img src="../assets/llm/slide-10.webp" alt="2D PCA of initial word embeddings for a longer passage, showing a dense central cloud of common words with pronouns and sentence-initial capitalised words pushed to the edges" loading="lazy" decoding="async" width="1280" height="720"></span>
     <figcaption><span class="fignum">Figure 8.</span> The initial embeddings over a longer passage. Function
     words pile up in the middle; capitalised sentence-openers (<em>She</em>, <em>They</em>, <em>He</em>,
     <em>But</em>) sit out on the right.</figcaption>
   </figure>
 
   <figure class="fig">
-    <span class="shot"><img src="../assets/llm/slide-11.webp" alt="2D PCA of the final hidden states for the longer passage, showing one dense cluster on the right and a sparse scattering of points to the left" loading="lazy" decoding="async"></span>
+    <span class="shot"><img src="../assets/llm/slide-11.webp" alt="2D PCA of the final hidden states for the longer passage, showing one dense cluster on the right and a sparse scattering of points to the left" loading="lazy" decoding="async" width="1280" height="720"></span>
     <figcaption><span class="fignum">Figure 9.</span> The same passage after the decoder blocks: one dense
     cluster, with a thin scatter of outliers.</figcaption>
   </figure>

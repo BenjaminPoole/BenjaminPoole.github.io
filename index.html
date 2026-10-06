@@ -546,80 +546,17 @@
   .feat:hover .go { transform: translateX(3px); color: #fff; }
 
 
-  /* --- second tier: small horizontal cards with a real thumbnail --- */
-  .more-head {
-    display: flex;
-    align-items: baseline;
-    justify-content: space-between;
-    margin: 2.9rem 0 .9rem;
-  }
-  .more-head h3 {
-    margin: 0;
-    font-size: .78rem;
-    font-weight: 600;
-    letter-spacing: .08em;
-    text-transform: uppercase;
-    color: var(--fg-faint);
-  }
-  .mini-grid {
-    display: grid;
-    grid-template-columns: repeat(2, 1fr);
-    gap: .6rem 1.1rem;
-  }
-  .mini {
-    display: flex;
-    align-items: center;
-    gap: .95rem;
-    padding: .7rem .85rem;
-    border: 1px solid var(--rule);
-    border-radius: 10px;
-    background: var(--bg);
+  /* the rest live on their own page (hirok-style "see all") */
+  .see-all { display: flex; justify-content: flex-end; margin-top: 1.6rem; }
+  .see-all a {
     text-decoration: none;
-    color: inherit;
-    transition: background-color .18s ease, border-color .18s ease, transform .18s ease;
-  }
-  .mini:hover { background: var(--card); border-color: transparent; transform: translateY(-1px); }
-  .mini .tile {
-    flex: none;
-    width: 3.1rem;
-    height: 3.1rem;
-    border-radius: 7px;
-    overflow: hidden;
-    background: var(--chip);
-    display: flex;
-    align-items: center;
-    justify-content: center;
-  }
-  .mini .tile img { width: 100%; height: 100%; object-fit: cover; display: block; }
-  .mini .tile img.fit-top { object-position: top center; }
-  .mini .glyph-svg { width: 1.35rem; height: 1.35rem; color: var(--fg-faint); }
-  .mini .mtext { min-width: 0; }
-  .mini h4 {
-    margin: 0 0 .1rem;
-    font-size: .92rem;
-    font-weight: 600;
-    letter-spacing: -.005em;
-    line-height: 1.35;
-  }
-  .mini p {
-    margin: 0;
-    font-size: .8rem;
-    line-height: 1.5;
     color: var(--fg-muted);
-    display: -webkit-box;
-    -webkit-line-clamp: 1;
-    -webkit-box-orient: vertical;
-    overflow: hidden;
+    border-bottom: 1px solid var(--rule);
+    transition: color .15s ease, border-color .15s ease;
   }
-  .mini .go {
-    flex: none;
-    margin-left: auto;
-    width: .95rem; height: .95rem;
-    color: var(--fg-faint);
-    opacity: 0;
-    transition: opacity .18s ease, transform .18s ease;
-  }
-  .mini:hover .go { opacity: 1; transform: translateX(2px); }
+  .see-all a span { display: inline-block; transition: transform .18s ease; }
+  .see-all a:hover { color: var(--fg); border-bottom-color: var(--accent); }
+  .see-all a:hover span { transform: translateX(3px); }
 
   @media (max-width: 62rem) {
     .feat-grid { grid-template-columns: 1fr 1fr; }
@@ -628,7 +565,6 @@
   @media (max-width: 40rem) {
     .feat-grid { grid-template-columns: 1fr; }
     .feat { min-height: 0; }
-    .mini-grid { grid-template-columns: 1fr; }
   }
 </style>
 </head>
@@ -637,7 +573,7 @@
 <nav>
   <a href="#research">Research</a>
   <a href="#projects">Projects</a>
-  <a href="sub_sites/dissertation.html">Dissertation</a>
+  <a href="projects/dissertation.html">Dissertation</a>
   <a href="CV/CV_general.pdf">CV</a>
   <a href="https://github.com/BenjaminPoole" aria-label="GitHub" title="GitHub">
     <svg viewBox="0 0 16 16" fill="currentColor" aria-hidden="true"><path d="M8 0C3.58 0 0 3.58 0 8c0 3.54 2.29 6.53 5.47 7.59.4.07.55-.17.55-.38 0-.19-.01-.82-.01-1.49-2.01.37-2.53-.49-2.69-.94-.09-.23-.48-.94-.82-1.13-.28-.15-.68-.52-.01-.53.63-.01 1.08.58 1.23.82.72 1.21 1.87.87 2.33.66.07-.52.28-.87.51-1.07-1.78-.2-3.64-.89-3.64-3.95 0-.87.31-1.59.82-2.15-.08-.2-.36-1.02.08-2.12 0 0 .67-.21 2.2.82.64-.18 1.32-.27 2-.27s1.36.09 2 .27c1.53-1.04 2.2-.82 2.2-.82.44 1.1.16 1.92.08 2.12.51.56.82 1.27.82 2.15 0 3.07-1.87 3.75-3.65 3.95.29.25.54.73.54 1.48 0 1.07-.01 1.93-.01 2.2 0 .21.15.46.55.38A8.01 8.01 0 0 0 16 8c0-4.42-3.58-8-8-8Z"/></svg>
@@ -694,7 +630,7 @@
     <ol class="roles">
 
       <li class="role">
-        <div class="thumb fit-left"><img src="assets/projects/aic-robot-policy.webp" alt="Agents, Interaction and Complexity research group at the University of Southampton" loading="lazy" decoding="async"></div>
+        <div class="thumb fit-left"><img src="assets/projects/aic-robot-policy.webp" alt="Agents, Interaction and Complexity research group at the University of Southampton" loading="lazy" decoding="async" width="800" height="500"></div>
         <div class="role-body">
           <div class="meta">Mar &ndash; Sep 2024 &middot; Research</div>
           <h3>Vision-language policy for robot agents</h3>
@@ -706,7 +642,7 @@
       </li>
 
       <li class="role">
-        <div class="thumb"><img src="assets/projects/tupel-3d.webp" alt="The Tupel 3D structured-light scanner prototype with a scanned 3D print" loading="lazy" decoding="async"></div>
+        <div class="thumb"><img src="assets/projects/tupel-3d.webp" alt="The Tupel 3D structured-light scanner prototype with a scanned 3D print" loading="lazy" decoding="async" width="700" height="700"></div>
         <div class="role-body">
           <div class="meta">Oct 2022 &ndash; Aug 2023 &middot; Research</div>
           <h3>Low-cost structured-light 3D scanner</h3>
@@ -717,10 +653,49 @@
         </div>
       </li>
 
+    </ol>
+  </section>
+
+  <section id="projects">
+      <h2>Featured projects</h2>
+
+      <div class="feat-grid">
+        <a class="feat violet" href="projects/LLM%20from%20scratch.html" target="_blank" rel="noopener">
+          <svg class="go" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M5 12h13"/><path d="m12.5 5.5 6.5 6.5-6.5 6.5"/></svg>
+          <div class="fmeta">2024 &middot; Machine learning</div>
+          <div class="shot"><img src="assets/projects/head_12.webp" alt="Attention pattern of the first layer, head 12, of the trained language model" loading="lazy" decoding="async" width="1323" height="1400"></div>
+          <h3>An LLM from scratch</h3>
+          <p>An implementation and analysis of a 14.5M-parameter language model written from the matrix multiplications up.</p>
+        </a>
+        <a class="feat azure" href="projects/SDEdit.html" target="_blank" rel="noopener">
+          <svg class="go" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M5 12h13"/><path d="m12.5 5.5 6.5 6.5-6.5 6.5"/></svg>
+          <div class="fmeta">2023 &middot; Machine learning</div>
+          <div class="shot contain"><img src="assets/projects/sdedit.webp" alt="SDEdit results: flat painted sketches on top, photorealistic faces and churches synthesised below" loading="lazy" decoding="async" width="800" height="392"></div>
+          <h3>Sketch to photograph with SDEdit</h3>
+          <p>Stable Diffusion turned into a sketch renderer, with no retraining at all.</p>
+        </a>
+        <a class="feat phosphor" href="projects/Ferranti-mark-I/index.html" target="_blank" rel="noopener">
+          <svg class="go" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M5 12h13"/><path d="m12.5 5.5 6.5 6.5-6.5 6.5"/></svg>
+          <div class="fmeta">2025–26 &middot; Emulator</div>
+          <div class="shot"><img src="assets/projects/ferranti-mark-1.webp" alt="Ferranti Mark 1 emulator: assembly source, teleprinter output and a live visualisation of the Williams-tube store" loading="lazy" decoding="async" width="800" height="500"></div>
+          <h3>Ferranti Mark I Emulator</h3>
+          <p>The 1951 machine emulated in the browser, with visualised Williams-tube store.</p>
+        </a>
+      </div>
+
+      <div class="see-all"><a href="projects.html">See all projects <span aria-hidden="true">&rarr;</span></a></div>
+
+  </section>
+
+  <section id="consulting">
+    <h2>Consulting</h2>
+
+    <ol class="roles">
+
       <li class="role">
         <div class="thumb"><img src="assets/projects/britwind-dashboard.webp"
             alt="Britwind IoT dashboard: live gauges for power generation, windspeed, shaft speed, wind direction, volts and amps"
-            loading="lazy" decoding="async"></div>
+            loading="lazy" decoding="async" width="800" height="446"></div>
         <div class="role-body">
           <div class="meta">Aug &ndash; Sep 2025 &middot; Engineering</div>
           <h3>Turbine analytics dashboard</h3>
@@ -732,79 +707,6 @@
       </li>
 
     </ol>
-  </section>
-
-  <section id="projects">
-      <h2>Featured projects</h2>
-
-      <div class="feat-grid">
-        <a class="feat phosphor" href="sub_sites/Ferranti-mark-I/index.html" target="_blank" rel="noopener">
-          <svg class="go" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M5 12h13"/><path d="m12.5 5.5 6.5 6.5-6.5 6.5"/></svg>
-          <div class="fmeta">2025–26 &middot; Emulator</div>
-          <div class="shot"><img src="assets/projects/ferranti-mark-1.webp" alt="Ferranti Mark 1 emulator: assembly source, teleprinter output and a live visualisation of the Williams-tube store" loading="lazy" decoding="async"></div>
-          <h3>Ferranti Mark I Emulator</h3>
-          <p>The 1951 machine emulated in the browser, with visualised Williams-tube store.</p>
-        </a>
-        <a class="feat violet" href="sub_sites/LLM%20from%20scratch.html" target="_blank" rel="noopener">
-          <svg class="go" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M5 12h13"/><path d="m12.5 5.5 6.5 6.5-6.5 6.5"/></svg>
-          <div class="fmeta">2024 &middot; Machine learning</div>
-          <div class="shot"><img src="assets/projects/head_12.webp" alt="Attention pattern of the first layer, head 12, of the trained language model" loading="lazy" decoding="async"></div>
-          <h3>An LLM from scratch</h3>
-          <p>An implementation and analysis of a 14.5M-parameter language model written from the matrix multiplications up.</p>
-        </a>
-        <a class="feat azure" href="sub_sites/SDEdit.html" target="_blank" rel="noopener">
-          <svg class="go" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M5 12h13"/><path d="m12.5 5.5 6.5 6.5-6.5 6.5"/></svg>
-          <div class="fmeta">2023 &middot; Machine learning</div>
-          <div class="shot contain"><img src="assets/projects/sdedit.webp" alt="SDEdit results: flat painted sketches on top, photorealistic faces and churches synthesised below" loading="lazy" decoding="async"></div>
-          <h3>Sketch to photograph with SDEdit</h3>
-          <p>Stable Diffusion turned into a sketch renderer, with no retraining at all.</p>
-        </a>
-      </div>
-
-      <div class="more-head"><h3>More projects</h3></div>
-      <div class="mini-grid">
-        <a class="mini" href="sub_sites/parakeet-transcriber.html" target="_blank" rel="noopener">
-          <span class="tile"><img src="assets/projects/parakeet-transcriber.webp" alt="" loading="lazy" decoding="async"></span>
-          <span class="mtext">
-            <h4>Browser-native speech transcriber</h4>
-            <p>Parakeet TDT 0.6B, running entirely in the browser.</p>
-          </span>
-          <svg class="go" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M5 12h13"/><path d="m12.5 5.5 6.5 6.5-6.5 6.5"/></svg>
-        </a>
-        <a class="mini" href="https://benjaminpoole.github.io/ecumenical-christian-library/" target="_blank" rel="noopener">
-          <span class="tile"><img class="fit-top" src="assets/projects/christian-library.webp" alt="" loading="lazy" decoding="async"></span>
-          <span class="mtext">
-            <h4>Ecumenical Christian Library</h4>
-            <p>A searchable digital library of over 17,000 texts.</p>
-          </span>
-          <svg class="go" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M5 12h13"/><path d="m12.5 5.5 6.5 6.5-6.5 6.5"/></svg>
-        </a>
-        <a class="mini" href="#">
-          <span class="tile"><svg class="glyph-svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M9.5 4C7.8 4 7.5 5 7.5 6.6v2.2c0 1.5-.7 2.4-2.2 2.4h-.8"/><path d="M9.5 20c-1.7 0-2-1-2-2.6v-2.2c0-1.5-.7-2.4-2.2-2.4h-.8"/><path d="M14.5 4c1.7 0 2 1 2 2.6v2.2c0 1.5.7 2.4 2.2 2.4h.8"/><path d="M14.5 20c1.7 0 2-1 2-2.6v-2.2c0-1.5.7-2.4 2.2-2.4h.8"/></svg></span>
-          <span class="mtext">
-            <h4>Compiler for a C-like language</h4>
-            <p>Lexer, parser and code generator, front to back.</p>
-          </span>
-          <svg class="go" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M5 12h13"/><path d="m12.5 5.5 6.5 6.5-6.5 6.5"/></svg>
-        </a>
-        <a class="mini" href="https://github.com/BenjaminPoole/Fast-Mandelbrot" target="_blank" rel="noopener">
-          <span class="tile"><img src="assets/projects/mandelbrot.webp" alt="" loading="lazy" decoding="async"></span>
-          <span class="mtext">
-            <h4>Fast Mandelbrot renderer</h4>
-            <p>A GPU-accelerated set explorer built for speed.</p>
-          </span>
-          <svg class="go" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M5 12h13"/><path d="m12.5 5.5 6.5 6.5-6.5 6.5"/></svg>
-        </a>
-        <a class="mini" href="#">
-          <span class="tile"><img src="assets/projects/tesla-coil.webp" alt="" loading="lazy" decoding="async"></span>
-          <span class="mtext">
-            <h4>Solid-state Tesla coil</h4>
-            <p>A homebrew SSTC running off 30V, reaching 60kV.</p>
-          </span>
-          <svg class="go" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M5 12h13"/><path d="m12.5 5.5 6.5 6.5-6.5 6.5"/></svg>
-        </a>
-      </div>
-
   </section>
 
   <section id="about" class="prose col">

@@ -1,0 +1,291 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Projects · Benjamin Poole</title>
+<meta name="description" content="Projects by Benjamin Poole: machine learning, emulators, compilers, graphics and hardware.">
+<link rel="icon" href="assets/favicon.ico" sizes="any">
+<link rel="icon" type="image/png" href="assets/favicon.png">
+<link rel="apple-touch-icon" href="assets/apple-touch-icon.png">
+<link rel="canonical" href="https://benjaminpoole.github.io/projects.html">
+<meta name="theme-color" content="#0d0d0e">
+<style>
+  :root {
+    color-scheme:    dark;
+    --bg:            #0d0d0e;
+    --fg:            #e8e8e8;
+    --fg-muted:      #9b9b9b;
+    --fg-faint:      #6a6a6a;
+    --rule:          #262628;
+    --card:          #161618;
+    --chip:          #1e1e21;
+    --accent:        #ffffff;
+    --wide:          56rem;
+  }
+  :root[data-theme="light"] {
+    color-scheme:    light;
+    --bg:            #ffffff;
+    --fg:            #1a1a1a;
+    --fg-muted:      #6b6b6b;
+    --fg-faint:      #9a9a9a;
+    --rule:          #e6e6e6;
+    --card:          #fafafa;
+    --chip:          #f2f2f2;
+    --accent:        #1a1a1a;
+  }
+
+  * { box-sizing: border-box; }
+  html { -webkit-text-size-adjust: 100%; }
+  body {
+    margin: 0;
+    background: var(--bg);
+    color: var(--fg);
+    font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Inter, Roboto, Helvetica, Arial, sans-serif;
+    font-size: 16px;
+    line-height: 1.75;
+    -webkit-font-smoothing: antialiased;
+    overflow-wrap: break-word;
+    transition: background-color .2s ease, color .2s ease;
+  }
+  a { color: inherit; }
+  p a {
+    text-decoration: none;
+    border-bottom: 1px solid var(--rule);
+    transition: border-color .15s ease;
+  }
+  p a:hover { border-bottom-color: var(--accent); }
+
+  /* ---------- nav (same as the home page) ---------- */
+  nav {
+    position: fixed;
+    top: 0; left: 0; right: 0;
+    display: flex;
+    justify-content: flex-end;
+    align-items: center;
+    gap: 1.4rem;
+    padding: 1.1rem 1.6rem;
+    font-size: .95rem;
+    z-index: 10;
+    background: linear-gradient(to bottom, var(--bg) 55%, transparent);
+  }
+  nav a, nav button {
+    color: var(--fg-muted);
+    text-decoration: none;
+    background: none;
+    border: 0;
+    padding: 0;
+    font: inherit;
+    cursor: pointer;
+    display: inline-flex;
+    align-items: center;
+    transition: color .15s ease;
+  }
+  nav a:hover, nav button:hover { color: var(--fg); }
+  nav svg { width: 18px; height: 18px; display: block; }
+  nav .home { margin-right: auto; }
+  #moon { display: none; }
+  :root[data-theme="light"] #moon { display: block; }
+  :root[data-theme="light"] #sun  { display: none; }
+
+  main {
+    max-width: var(--wide);
+    margin: 0 auto;
+    padding: 7rem 1.6rem 6rem;
+  }
+  h1 {
+    font-size: 2.4rem;
+    font-weight: 700;
+    letter-spacing: -.02em;
+    line-height: 1.2;
+    margin: 0 0 1.4rem;
+  }
+  .lead { font-size: 1.05rem; margin: 0 0 3rem; color: var(--fg-muted); }
+
+  /* ---------- stacked project rows (hirok npm-packages style) ---------- */
+  .stack { list-style: none; margin: 0; padding: 0; display: grid; gap: .7rem; }
+  .row {
+    display: grid;
+    grid-template-columns: 4.5rem 1fr;
+    gap: 1.4rem;
+    align-items: center;
+    padding: 1.4rem 1.3rem;
+    border-radius: 14px;
+    text-decoration: none;
+    color: inherit;
+    background: var(--wash, transparent);
+    transition: background-color .2s ease;
+  }
+  .row:not([class*="wash-"]):hover { background-color: var(--card); }
+  /* featured projects keep their card colour as a wash that fades out to the right */
+  .wash-violet   { --wash: linear-gradient(100deg, rgba(124,58,237,.32), rgba(76,29,149,.06) 75%); }
+  .wash-azure    { --wash: linear-gradient(100deg, rgba(59,110,180,.36), rgba(44,81,130,.06) 75%); }
+  .wash-phosphor { --wash: linear-gradient(100deg, rgba(74,222,128,.2),  rgba(20,48,31,.06) 75%); }
+  .tile {
+    width: 4.5rem;
+    height: 4.5rem;
+    border-radius: 12px;
+    overflow: hidden;
+    background: var(--chip);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    transition: transform .22s cubic-bezier(.2,.7,.3,1);
+  }
+  .row:hover .tile { transform: translateY(-2px) scale(1.03); }
+  .tile img { width: 100%; height: 100%; object-fit: cover; display: block; }
+  .tile img.fit-top { object-position: top center; }
+  .tile.contain { background: #fff; }
+  .tile.contain img { object-fit: contain; }
+  .tile .glyph-svg { width: 1.9rem; height: 1.9rem; color: var(--fg-faint); }
+
+  .info { min-width: 0; }
+  .info h2 {
+    margin: 0 0 .2rem;
+    font-size: 1.45rem;
+    font-weight: 650;
+    letter-spacing: -.015em;
+    line-height: 1.3;
+    display: flex;
+    align-items: center;
+    gap: .55rem;
+  }
+  .info h2 .go {
+    width: 1.05rem; height: 1.05rem;
+    flex: none;
+    color: var(--fg-faint);
+    transition: transform .2s ease, color .2s ease;
+  }
+  .row:hover h2 .go { transform: translateX(3px); color: var(--fg); }
+  .info p { margin: 0; font-size: .95rem; line-height: 1.6; color: var(--fg-muted); }
+
+  .soon { cursor: default; }
+  .soon .info h2 .go { display: none; }
+
+  footer { margin-top: 4rem; font-size: .85rem; color: var(--fg-faint); }
+
+  @media (max-width: 640px) {
+    main { padding: 5.5rem 1.15rem 4rem; }
+    h1 { font-size: 2rem; }
+    nav { gap: 1.1rem; padding: 1rem 1.15rem; }
+    .row { grid-template-columns: 3.6rem 1fr; gap: .4rem 1rem; padding: 1.1rem .9rem; }
+    .tile { width: 3.6rem; height: 3.6rem; border-radius: 10px; }
+    .info h2 { font-size: 1.2rem; }
+  }
+</style>
+</head>
+<body>
+
+<nav>
+  <a class="home" href="index.html">&larr; Benjamin Poole</a>
+  <a href="index.html#research">Research</a>
+  <a href="projects/dissertation.html">Dissertation</a>
+  <a href="CV/CV_general.pdf">CV</a>
+  <a href="https://github.com/BenjaminPoole" aria-label="GitHub" title="GitHub">
+    <svg viewBox="0 0 16 16" fill="currentColor" aria-hidden="true"><path d="M8 0C3.58 0 0 3.58 0 8c0 3.54 2.29 6.53 5.47 7.59.4.07.55-.17.55-.38 0-.19-.01-.82-.01-1.49-2.01.37-2.53-.49-2.69-.94-.09-.23-.48-.94-.82-1.13-.28-.15-.68-.52-.01-.53.63-.01 1.08.58 1.23.82.72 1.21 1.87.87 2.33.66.07-.52.28-.87.51-1.07-1.78-.2-3.64-.89-3.64-3.95 0-.87.31-1.59.82-2.15-.08-.2-.36-1.02.08-2.12 0 0 .67-.21 2.2.82.64-.18 1.32-.27 2-.27s1.36.09 2 .27c1.53-1.04 2.2-.82 2.2-.82.44 1.1.16 1.92.08 2.12.51.56.82 1.27.82 2.15 0 3.07-1.87 3.75-3.65 3.95.29.25.54.73.54 1.48 0 1.07-.01 1.93-.01 2.2 0 .21.15.46.55.38A8.01 8.01 0 0 0 16 8c0-4.42-3.58-8-8-8Z"/></svg>
+  </a>
+  <button id="theme" aria-label="Toggle colour theme" title="Toggle colour theme">
+    <svg id="moon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M21 12.79A9 9 0 1 1 11.21 3 7 7 0 0 0 21 12.79Z"/></svg>
+    <svg id="sun" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><circle cx="12" cy="12" r="4.2"/><path d="M12 2v2M12 20v2M4.9 4.9l1.4 1.4M17.7 17.7l1.4 1.4M2 12h2M20 12h2M4.9 19.1l1.4-1.4M17.7 6.3l1.4-1.4"/></svg>
+  </button>
+</nav>
+
+<main>
+  <h1>Projects</h1>
+  <!-- <p class="lead">Things I&rsquo;ve built: from language models and diffusion to emulators, compilers and high-voltage hardware.</p> -->
+
+  <ul class="stack">
+
+    <li><a class="row wash-violet" href="projects/LLM%20from%20scratch.html" target="_blank" rel="noopener">
+      <span class="tile"><img src="assets/projects/head_12.webp" alt="" loading="lazy" decoding="async" width="1323" height="1400"></span>
+      <div class="info">
+        <h2>An LLM from scratch <svg class="go" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M5 12h13"/><path d="m12.5 5.5 6.5 6.5-6.5 6.5"/></svg></h2>
+        <p>An implementation and analysis of a 14.5M-parameter language model written from the matrix multiplications up.</p>
+      </div>
+    </a></li>
+
+    <li><a class="row wash-azure" href="projects/SDEdit.html" target="_blank" rel="noopener">
+      <span class="tile contain"><img src="assets/projects/sdedit.webp" alt="" loading="lazy" decoding="async" width="800" height="392"></span>
+      <div class="info">
+        <h2>Sketch to photograph with SDEdit <svg class="go" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M5 12h13"/><path d="m12.5 5.5 6.5 6.5-6.5 6.5"/></svg></h2>
+        <p>Stable Diffusion turned into a sketch renderer, with no retraining at all.</p>
+      </div>
+    </a></li>
+
+    <li><a class="row wash-phosphor" href="projects/Ferranti-mark-I/index.html" target="_blank" rel="noopener">
+      <span class="tile"><img src="assets/projects/ferranti-mark-1.webp" alt="" loading="lazy" decoding="async" width="800" height="500"></span>
+      <div class="info">
+        <h2>Ferranti Mark I Emulator <svg class="go" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M5 12h13"/><path d="m12.5 5.5 6.5 6.5-6.5 6.5"/></svg></h2>
+        <p>The 1951 machine emulated in the browser, with visualised Williams-tube store.</p>
+      </div>
+    </a></li>
+
+    <li><a class="row" href="projects/parakeet-transcriber.html" target="_blank" rel="noopener">
+      <span class="tile"><img src="assets/projects/parakeet-transcriber.webp" alt="" loading="lazy" decoding="async" width="800" height="500"></span>
+      <div class="info">
+        <h2>Browser-native speech transcriber <svg class="go" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M5 12h13"/><path d="m12.5 5.5 6.5 6.5-6.5 6.5"/></svg></h2>
+        <p>Parakeet TDT 0.6B, running entirely in the browser.</p>
+      </div>
+    </a></li>
+
+    <li><a class="row" href="https://benjaminpoole.github.io/ecumenical-christian-library/" target="_blank" rel="noopener">
+      <span class="tile"><img class="fit-top" src="assets/projects/christian-library.webp" alt="" loading="lazy" decoding="async" width="800" height="481"></span>
+      <div class="info">
+        <h2>Ecumenical Christian Library <svg class="go" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M5 12h13"/><path d="m12.5 5.5 6.5 6.5-6.5 6.5"/></svg></h2>
+        <p>A searchable digital library of over 17,000 texts.</p>
+      </div>
+    </a></li>
+
+    <!-- <li><a class="row soon" href="#">
+      <span class="tile"><svg class="glyph-svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M9.5 4C7.8 4 7.5 5 7.5 6.6v2.2c0 1.5-.7 2.4-2.2 2.4h-.8"/><path d="M9.5 20c-1.7 0-2-1-2-2.6v-2.2c0-1.5-.7-2.4-2.2-2.4h-.8"/><path d="M14.5 4c1.7 0 2 1 2 2.6v2.2c0 1.5.7 2.4 2.2 2.4h.8"/><path d="M14.5 20c1.7 0 2-1 2-2.6v-2.2c0-1.5.7-2.4 2.2-2.4h.8"/></svg></span>
+      <div class="info">
+        <h2>Compiler for a C-like language <svg class="go" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M5 12h13"/><path d="m12.5 5.5 6.5 6.5-6.5 6.5"/></svg></h2>
+        <p>Lexer, parser and code generator, front to back.</p>
+      </div>
+    </a></li> -->
+
+    <li><a class="row" href="https://github.com/BenjaminPoole/Fast-Mandelbrot" target="_blank" rel="noopener">
+      <span class="tile"><img src="assets/projects/mandelbrot.webp" alt="" loading="lazy" decoding="async" width="800" height="800"></span>
+      <div class="info">
+        <h2>Fast Mandelbrot renderer <svg class="go" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M5 12h13"/><path d="m12.5 5.5 6.5 6.5-6.5 6.5"/></svg></h2>
+        <p>A GPU-accelerated set explorer built for speed.</p>
+      </div>
+    </a></li>
+
+    <li><a class="row soon" href="#">
+      <span class="tile"><img src="assets/projects/tesla-coil.webp" alt="" loading="lazy" decoding="async" width="800" height="593"></span>
+      <div class="info">
+        <h2>Solid-state Tesla coil <svg class="go" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M5 12h13"/><path d="m12.5 5.5 6.5 6.5-6.5 6.5"/></svg></h2>
+        <p>A homebrew SSTC running off 30V, reaching 60kV.</p>
+      </div>
+    </a></li>
+
+  </ul>
+
+  <footer>&copy; 2026 Benjamin Poole</footer>
+</main>
+
+<script>
+  (function () {
+    var root = document.documentElement;
+    try {
+      var saved = localStorage.getItem('theme-v2');
+      if (saved) root.setAttribute('data-theme', saved);
+    } catch (e) {}
+
+    document.getElementById('theme').addEventListener('click', function () {
+      var current = root.getAttribute('data-theme') || 'dark';
+      var next = current === 'dark' ? 'light' : 'dark';
+      root.setAttribute('data-theme', next);
+      try { localStorage.setItem('theme-v2', next); } catch (e) {}
+    });
+
+    // Rows without a destination yet.
+    document.querySelectorAll('a[href="#"]').forEach(function (a) {
+      a.addEventListener('click', function (e) { e.preventDefault(); });
+    });
+  })();
+</script>
+<script data-goatcounter="https://dev-website.goatcounter.com/count" async src="//gc.zgo.at/count.js"></script>
+</body>
+</html>

@@ -240,7 +240,7 @@ details.verb .tbl-scroll{padding:0 1rem 1rem;max-height:30rem;overflow:auto}
   <h2 id="sec:generation"><span class="secnum">1</span>The intuition</h2>
 
   <figure class="fig">
-    <span class="shot"><img src="../assets/sdedit/talk-intuition.webp" alt="Slide 'The Intuition': stroke paintings and real images sit in distant distributions, but after adding noise the two blurred distributions overlap, so the frozen model can denoise from one to the other"></span>
+    <span class="shot"><img src="../assets/sdedit/talk-intuition.webp" alt="Slide 'The Intuition': stroke paintings and real images sit in distant distributions, but after adding noise the two blurred distributions overlap, so the frozen model can denoise from one to the other" width="1408" height="880" loading="lazy" decoding="async"></span>
   </figure>
 
   <p>It is hard to go from stroke painting to real image. The distribution is far away, e.g. a stroke painting
@@ -269,21 +269,21 @@ details.verb .tbl-scroll{padding:0 1rem 1rem;max-height:30rem;overflow:auto}
   </ul>
 
   <figure class="fig">
-    <span class="shot"><img src="../assets/sdedit/paper-guide-quality.webp" alt="Paper figure 8: four crude guides of faces and landscapes on the top row, with SDEdit's photorealistic outputs beneath them" loading="lazy" decoding="async"></span>
+    <span class="shot"><img src="../assets/sdedit/paper-guide-quality.webp" alt="Paper figure 8: four crude guides of faces and landscapes on the top row, with SDEdit's photorealistic outputs beneath them" loading="lazy" decoding="async" width="1408" height="712"></span>
     <figcaption><span class="fignum">Figure 8.</span> Analysis on the quality of user guide for stroke-based
     image synthesis. Because we are moving in the direction of a general real image in accordance with the
     learned distribution, we are resistant to outlier input.</figcaption>
   </figure>
 
   <figure class="fig">
-    <span class="shot"><img src="../assets/sdedit/paper-t0-sweet-spot.webp" alt="Paper figure: KID and squared L2 norm plotted against t0 with a sweet spot in the middle, beside a strip of bedroom images synthesised at t0 from 0 to 1, running from faithful to realistic" loading="lazy" decoding="async"></span>
+    <span class="shot"><img src="../assets/sdedit/paper-t0-sweet-spot.webp" alt="Paper figure: KID and squared L2 norm plotted against t0 with a sweet spot in the middle, beside a strip of bedroom images synthesised at t0 from 0 to 1, running from faithful to realistic" loading="lazy" decoding="async" width="1408" height="429"></span>
     <figcaption>The trade-off in one picture: at low <span class="math">t<sub>0</sub></span> the output is
     faithful to the guide, at high <span class="math">t<sub>0</sub></span> it is realistic but no longer the
     picture you drew.</figcaption>
   </figure>
 
   <figure class="fig">
-    <span class="shot"><img src="../assets/sdedit/paper-t0-sweep.webp" alt="Paper figure 12: a guide photograph of a house beside twelve generated versions at t0 from 0 to 0.9, becoming progressively more realistic and less like the guide" loading="lazy" decoding="async"></span>
+    <span class="shot"><img src="../assets/sdedit/paper-t0-sweep.webp" alt="Paper figure 12: a guide photograph of a house beside twelve generated versions at t0 from 0 to 0.9, becoming progressively more realistic and less like the guide" loading="lazy" decoding="async" width="1408" height="496"></span>
     <figcaption><span class="fignum">Figure 12.</span> Extra analysis on <span class="math">t<sub>0</sub></span>.
     As it increases, the generated images become more realistic while less faithful.</figcaption>
   </figure>
@@ -300,7 +300,7 @@ details.verb .tbl-scroll{padding:0 1rem 1rem;max-height:30rem;overflow:auto}
   <p>If the guide is far from any realistic image we must tolerate deviation.</p>
 
   <figure class="fig">
-    <span class="shot"><img src="../assets/sdedit/paper-gan-comparison.webp" alt="Paper figure 4: bedroom guides compared across StyleGAN2-ADA, two in-domain baselines, e4e and SDEdit, with SDEdit keeping the layout of the guide while looking photographic" loading="lazy" decoding="async"></span>
+    <span class="shot"><img src="../assets/sdedit/paper-gan-comparison.webp" alt="Paper figure 4: bedroom guides compared across StyleGAN2-ADA, two in-domain baselines, e4e and SDEdit, with SDEdit keeping the layout of the guide while looking photographic" loading="lazy" decoding="async" width="1408" height="911"></span>
     <figcaption><span class="fignum">Figure 4.</span> SDEdit generates more realistic and faithful images than
     state-of-the-art GAN-based models on stroke-based generation (LSUN bedroom).</figcaption>
   </figure>
@@ -313,15 +313,15 @@ details.verb .tbl-scroll{padding:0 1rem 1rem;max-height:30rem;overflow:auto}
 
   <div class="figrow three">
     <figure class="fig" style="margin:0">
-      <span class="shot"><img src="../assets/sdedit/guide-sketch.webp" alt="The flat painted guide: a blue sky, dark headland, pink shoreline, green field and a tower, all in blocks of solid colour" loading="lazy" decoding="async"></span>
+      <span class="shot"><img src="../assets/sdedit/guide-sketch.webp" alt="The flat painted guide: a blue sky, dark headland, pink shoreline, green field and a tower, all in blocks of solid colour" loading="lazy" decoding="async" width="389" height="389"></span>
       <figcaption>Input</figcaption>
     </figure>
     <figure class="fig" style="margin:0">
-      <span class="shot"><img src="../assets/sdedit/vae-output.webp" alt="The same painted guide after a full encode-decode pass through the VAE, visually identical" loading="lazy" decoding="async"></span>
+      <span class="shot"><img src="../assets/sdedit/vae-output.webp" alt="The same painted guide after a full encode-decode pass through the VAE, visually identical" loading="lazy" decoding="async" width="389" height="389"></span>
       <figcaption>Output</figcaption>
     </figure>
     <figure class="fig" style="margin:0">
-      <span class="shot"><img src="../assets/sdedit/vae-difference.webp" alt="The difference between input and output multiplied by 31.3, showing faint edge outlines in false colour" loading="lazy" decoding="async"></span>
+      <span class="shot"><img src="../assets/sdedit/vae-difference.webp" alt="The difference between input and output multiplied by 31.3, showing faint edge outlines in false colour" loading="lazy" decoding="async" width="756" height="789"></span>
       <figcaption>(output &minus; input) &times; 31.3</figcaption>
     </figure>
   </div>
@@ -330,7 +330,7 @@ details.verb .tbl-scroll{padding:0 1rem 1rem;max-height:30rem;overflow:auto}
   faithfully.</p>
 
   <figure class="fig">
-    <span class="shot"><span class="tall"><img src="../assets/sdedit/vae-latent.webp" alt="Normalized view of the 64x64 VAE latent, a washed-out low resolution version of the guide image" loading="lazy" decoding="async"></span></span>
+    <span class="shot"><span class="tall"><img src="../assets/sdedit/vae-latent.webp" alt="Normalized view of the 64x64 VAE latent, a washed-out low resolution version of the guide image" loading="lazy" decoding="async" width="742" height="858"></span></span>
     <figcaption>Normalized view of VAE latent space (64&times;64). It looks like it&rsquo;s just been
     downsampled? Maybe that&rsquo;s the best way for the autoencoder to represent it.</figcaption>
   </figure>
@@ -341,13 +341,13 @@ details.verb .tbl-scroll{padding:0 1rem 1rem;max-height:30rem;overflow:auto}
 
   <div class="figrow three">
     <figure class="fig" style="margin:0">
-      <span class="shot"><img src="../assets/sdedit/vae-latent-sample-1.webp" alt="Notebook screenshot of one sampled latent rendered as coloured noise" loading="lazy" decoding="async"></span>
+      <span class="shot"><img src="../assets/sdedit/vae-latent-sample-1.webp" alt="Notebook screenshot of one sampled latent rendered as coloured noise" loading="lazy" decoding="async" width="406" height="435"></span>
     </figure>
     <figure class="fig" style="margin:0">
-      <span class="shot"><img src="../assets/sdedit/vae-latent-sample-2.webp" alt="Notebook screenshot of a second sampled latent, near identical to the first" loading="lazy" decoding="async"></span>
+      <span class="shot"><img src="../assets/sdedit/vae-latent-sample-2.webp" alt="Notebook screenshot of a second sampled latent, near identical to the first" loading="lazy" decoding="async" width="409" height="445"></span>
     </figure>
     <figure class="fig" style="margin:0">
-      <span class="shot"><img src="../assets/sdedit/vae-latent-sample-3.webp" alt="Notebook screenshot of a third sampled latent, again near identical" loading="lazy" decoding="async"></span>
+      <span class="shot"><img src="../assets/sdedit/vae-latent-sample-3.webp" alt="Notebook screenshot of a third sampled latent, again near identical" loading="lazy" decoding="async" width="390" height="438"></span>
     </figure>
   </div>
 
@@ -358,15 +358,15 @@ details.verb .tbl-scroll{padding:0 1rem 1rem;max-height:30rem;overflow:auto}
 
   <div class="figrow three">
     <figure class="fig" style="margin:0">
-      <span class="shot"><img src="../assets/sdedit/size-512.webp" alt="A clean photorealistic image of an astronaut riding a horse, generated at 512x512" loading="lazy" decoding="async"></span>
+      <span class="shot"><img src="../assets/sdedit/size-512.webp" alt="A clean photorealistic image of an astronaut riding a horse, generated at 512x512" loading="lazy" decoding="async" width="719" height="721"></span>
       <figcaption>512&times;512 (default)</figcaption>
     </figure>
     <figure class="fig" style="margin:0">
-      <span class="shot natural"><img src="../assets/sdedit/size-256.webp" alt="The same prompt at 256x256: a garish, posterised horse and rider with broken detail" loading="lazy" decoding="async"></span>
+      <span class="shot natural"><img src="../assets/sdedit/size-256.webp" alt="The same prompt at 256x256: a garish, posterised horse and rider with broken detail" loading="lazy" decoding="async" width="256" height="256"></span>
       <figcaption>256&times;256</figcaption>
     </figure>
     <figure class="fig" style="margin:0">
-      <span class="shot natural"><img src="../assets/sdedit/size-128.webp" alt="The same prompt at 128x128: coloured blocks with no recognisable subject" loading="lazy" decoding="async"></span>
+      <span class="shot natural"><img src="../assets/sdedit/size-128.webp" alt="The same prompt at 128x128: coloured blocks with no recognisable subject" loading="lazy" decoding="async" width="128" height="128"></span>
       <figcaption>128&times;128</figcaption>
     </figure>
   </div>
@@ -381,7 +381,7 @@ details.verb .tbl-scroll{padding:0 1rem 1rem;max-height:30rem;overflow:auto}
   </ul>
 
   <figure class="fig">
-    <span class="shot"><img src="../assets/sdedit/noise-vs-resolution.webp" alt="A butterfly photograph shown clean, then noised at t=500 at size 512 where it is still recognisable, then noised at t=500 at size 64 where it is destroyed" loading="lazy" decoding="async"></span>
+    <span class="shot"><img src="../assets/sdedit/noise-vs-resolution.webp" alt="A butterfly photograph shown clean, then noised at t=500 at size 512 where it is still recognisable, then noised at t=500 at size 64 where it is destroyed" loading="lazy" decoding="async" width="1195" height="445"></span>
     <figcaption>Comparing the effect of adding noise to images of different sizes. From
     <em>Hands-On Generative AI with Transformers and Diffusion Models</em>.</figcaption>
   </figure>
@@ -390,11 +390,11 @@ details.verb .tbl-scroll{padding:0 1rem 1rem;max-height:30rem;overflow:auto}
 
   <div class="figrow two">
     <figure class="fig" style="margin:0">
-      <span class="shot natural"><img src="../assets/sdedit/size-128-noise-4.webp" alt="128x128 output with the noise divided by four: a dark blue field with a pale blob" loading="lazy" decoding="async"></span>
+      <span class="shot natural"><img src="../assets/sdedit/size-128-noise-4.webp" alt="128x128 output with the noise divided by four: a dark blue field with a pale blob" loading="lazy" decoding="async" width="128" height="128"></span>
       <figcaption>128&times;128, noise / 4</figcaption>
     </figure>
     <figure class="fig" style="margin:0">
-      <span class="shot natural"><img src="../assets/sdedit/size-128-noise-16.webp" alt="128x128 output with the noise divided by sixteen: two flat blocks of dark grey and pale green" loading="lazy" decoding="async"></span>
+      <span class="shot natural"><img src="../assets/sdedit/size-128-noise-16.webp" alt="128x128 output with the noise divided by sixteen: two flat blocks of dark grey and pale green" loading="lazy" decoding="async" width="128" height="128"></span>
       <figcaption>128&times;128, noise / 16</figcaption>
     </figure>
   </div>
@@ -437,7 +437,7 @@ details.verb .tbl-scroll{padding:0 1rem 1rem;max-height:30rem;overflow:auto}
   as the point of big t is to increase faithfulness to the guide?</p>
 
   <figure class="fig">
-    <span class="shot"><img src="../assets/sdedit/paper-t0-sweet-spot.webp" alt="The same paper figure again: KID and L2 against t0 with a sweet spot in the middle, and a strip of outputs from faithful to realistic" loading="lazy" decoding="async"></span>
+    <span class="shot"><img src="../assets/sdedit/paper-t0-sweet-spot.webp" alt="The same paper figure again: KID and L2 against t0 with a sweet spot in the middle, and a strip of outputs from faithful to realistic" loading="lazy" decoding="async" width="1408" height="429"></span>
   </figure>
 
   <p>Remember we want to vary between faithful and realistic.</p>
@@ -459,11 +459,11 @@ details.verb .tbl-scroll{padding:0 1rem 1rem;max-height:30rem;overflow:auto}
 
   <div class="figrow two">
     <figure class="fig" style="margin:0">
-      <span class="shot"><img src="../assets/sdedit/latent-through-encoder.webp" alt="The guide passed through the encoder: a soft, washed out version of the painted landscape" loading="lazy" decoding="async"></span>
+      <span class="shot"><img src="../assets/sdedit/latent-through-encoder.webp" alt="The guide passed through the encoder: a soft, washed out version of the painted landscape" loading="lazy" decoding="async" width="460" height="460"></span>
       <figcaption>Through the encoder</figcaption>
     </figure>
     <figure class="fig" style="margin:0">
-      <span class="shot"><img src="../assets/sdedit/latent-scaled.webp" alt="The guide multiplied by the decoder scaling factor 0.18215: darker and more saturated than the encoder version" loading="lazy" decoding="async"></span>
+      <span class="shot"><img src="../assets/sdedit/latent-scaled.webp" alt="The guide multiplied by the decoder scaling factor 0.18215: darker and more saturated than the encoder version" loading="lazy" decoding="async" width="422" height="422"></span>
       <figcaption>Multiplied by the scaling factor. Latent from autoencoder: mean = 1.4726, std = 5.3844</figcaption>
     </figure>
   </div>
@@ -477,7 +477,7 @@ details.verb .tbl-scroll{padding:0 1rem 1rem;max-height:30rem;overflow:auto}
   </ul>
 
   <figure class="fig">
-    <span class="shot"><img src="../assets/sdedit/search-2d-with-prompt.webp" alt="A 10x10 grid of outputs: guidance scale 0 to 0.9 across, t0 0 to 0.9 down. The top rows are photographs of cameras driven by the prompt, the lower right cells resolve into the guide's landscape under noise" loading="lazy" decoding="async"></span>
+    <span class="shot"><img src="../assets/sdedit/search-2d-with-prompt.webp" alt="A 10x10 grid of outputs: guidance scale 0 to 0.9 across, t0 0 to 0.9 down. The top rows are photographs of cameras driven by the prompt, the lower right cells resolve into the guide's landscape under noise" loading="lazy" decoding="async" width="1375" height="1375"></span>
     <figcaption>Guidance scale 0&ndash;0.9 across, <span class="math">t<sub>0</sub></span> 0&ndash;0.9 down.
     With the camera prompt the model spends its freedom on the prompt rather than the guide.</figcaption>
   </figure>
@@ -487,18 +487,18 @@ details.verb .tbl-scroll{padding:0 1rem 1rem;max-height:30rem;overflow:auto}
   <p>Results of the 2D search on guidance scale and <span class="math">t<sub>0</sub></span> with no prompt:</p>
 
   <figure class="fig">
-    <span class="shot"><img src="../assets/sdedit/search-2d-no-prompt.webp" alt="A second 10x10 grid without a prompt: unrelated photographs at low t0, the guide's landscape emerging in the right-hand columns at higher guidance scale" loading="lazy" decoding="async"></span>
+    <span class="shot"><img src="../assets/sdedit/search-2d-no-prompt.webp" alt="A second 10x10 grid without a prompt: unrelated photographs at low t0, the guide's landscape emerging in the right-hand columns at higher guidance scale" loading="lazy" decoding="async" width="1377" height="1377"></span>
     <figcaption>Guidance scale 0&ndash;0.9 across, <span class="math">t<sub>0</sub></span> 0&ndash;0.9 down,
     with no prompt.</figcaption>
   </figure>
 
   <div class="figrow two">
     <figure class="fig" style="margin:0">
-      <span class="shot"><img src="../assets/sdedit/guide-sketch.webp" alt="The painted guide: sky, headland, shoreline, field and tower in flat colour" loading="lazy" decoding="async"></span>
+      <span class="shot"><img src="../assets/sdedit/guide-sketch.webp" alt="The painted guide: sky, headland, shoreline, field and tower in flat colour" loading="lazy" decoding="async" width="389" height="389"></span>
       <figcaption>Guide</figcaption>
     </figure>
     <figure class="fig" style="margin:0">
-      <span class="shot"><img src="../assets/sdedit/best-with-prompt.webp" alt="Output with the prompt: a town on a hillside above water, with a spire, but with large hallucinated lettering across the sky" loading="lazy" decoding="async"></span>
+      <span class="shot"><img src="../assets/sdedit/best-with-prompt.webp" alt="Output with the prompt: a town on a hillside above water, with a spire, but with large hallucinated lettering across the sky" loading="lazy" decoding="async" width="674" height="674"></span>
       <figcaption>Best with prompt: <span class="math">t<sub>0</sub></span> = 0.5, guidance scale = 0.8</figcaption>
     </figure>
   </div>
@@ -507,11 +507,11 @@ details.verb .tbl-scroll{padding:0 1rem 1rem;max-height:30rem;overflow:auto}
 
   <div class="figrow two">
     <figure class="fig" style="margin:0">
-      <span class="shot"><img src="../assets/sdedit/guide-sketch.webp" alt="The same painted guide" loading="lazy" decoding="async"></span>
+      <span class="shot"><img src="../assets/sdedit/guide-sketch.webp" alt="The same painted guide" loading="lazy" decoding="async" width="389" height="389"></span>
       <figcaption>Guide</figcaption>
     </figure>
     <figure class="fig" style="margin:0">
-      <span class="shot"><img src="../assets/sdedit/best-no-prompt.webp" alt="Output with no prompt: a painterly lakeside town with a church spire, following the guide's layout closely" loading="lazy" decoding="async"></span>
+      <span class="shot"><img src="../assets/sdedit/best-no-prompt.webp" alt="Output with no prompt: a painterly lakeside town with a church spire, following the guide's layout closely" loading="lazy" decoding="async" width="516" height="511"></span>
       <figcaption>Best from no prompt: <span class="math">t<sub>0</sub></span> = 0.4, guidance scale = 0.9</figcaption>
     </figure>
   </div>
@@ -524,12 +524,12 @@ details.verb .tbl-scroll{padding:0 1rem 1rem;max-height:30rem;overflow:auto}
   <p>With 200 iterations and <span class="math">t<sub>0</sub></span> = 0.5, guidance scale 0.7 to 1.1:</p>
 
   <figure class="fig">
-    <span class="shot"><img src="../assets/sdedit/guidance-200-iters-no-prompt.webp" alt="A row of five outputs at guidance scale 0.7 to 1.1 with no prompt, each a painterly lakeside town, growing flatter and closer to the guide as the scale rises" loading="lazy" decoding="async"></span>
+    <span class="shot"><img src="../assets/sdedit/guidance-200-iters-no-prompt.webp" alt="A row of five outputs at guidance scale 0.7 to 1.1 with no prompt, each a painterly lakeside town, growing flatter and closer to the guide as the scale rises" loading="lazy" decoding="async" width="1408" height="227"></span>
     <figcaption>No prompt. Guidance scale 0.7, 0.8, 0.9, 1.0, 1.1.</figcaption>
   </figure>
 
   <figure class="fig">
-    <span class="shot"><img src="../assets/sdedit/guidance-200-iters-with-prompt.webp" alt="The same sweep with a prompt: five outputs that drift further from the guide, the last two losing the town altogether" loading="lazy" decoding="async"></span>
+    <span class="shot"><img src="../assets/sdedit/guidance-200-iters-with-prompt.webp" alt="The same sweep with a prompt: five outputs that drift further from the guide, the last two losing the town altogether" loading="lazy" decoding="async" width="1408" height="214"></span>
     <figcaption>With prompt. Guidance scale 0.7, 0.8, 0.9, 1.0, 1.1. Note images did not export at the same
     resolution.</figcaption>
   </figure>
@@ -542,15 +542,15 @@ details.verb .tbl-scroll{padding:0 1rem 1rem;max-height:30rem;overflow:auto}
   <span class="math">t<sub>0</sub></span> = 0.4 and guidance scale = 0.9?</p>
 
   <figure class="fig">
-    <span class="shot"><img src="../assets/sdedit/iterations-2-18.webp" alt="Nine outputs at 2 to 18 iterations: the first is a brown blur, the rest settle into the lakeside town" loading="lazy" decoding="async"></span>
-    <span class="shot" style="margin-top:.8rem"><img src="../assets/sdedit/iterations-20-180.webp" alt="Nine outputs at 20 to 180 iterations, all close variants of the same town, the tower's top changing between a ball and a spire" loading="lazy" decoding="async"></span>
+    <span class="shot"><img src="../assets/sdedit/iterations-2-18.webp" alt="Nine outputs at 2 to 18 iterations: the first is a brown blur, the rest settle into the lakeside town" loading="lazy" decoding="async" width="1379" height="307"></span>
+    <span class="shot" style="margin-top:.8rem"><img src="../assets/sdedit/iterations-20-180.webp" alt="Nine outputs at 20 to 180 iterations, all close variants of the same town, the tower's top changing between a ball and a spire" loading="lazy" decoding="async" width="1379" height="306"></span>
     <figcaption>Above 2&ndash;18 and below 20&ndash;180 iterations. Notice how the tower oscillates between
     spire and ball before converging on spire.</figcaption>
   </figure>
 
   <figure class="fig">
-    <span class="shot"><img src="../assets/sdedit/iterations-2-18-prompt.webp" alt="Nine outputs at 2 to 18 iterations with the sunrise landscape prompt, the first a band of colour, the rest pink-skied mountain valleys" loading="lazy" decoding="async"></span>
-    <span class="shot" style="margin-top:.8rem"><img src="../assets/sdedit/iterations-20-180-prompt.webp" alt="Nine outputs at 20 to 180 iterations with the prompt, all pink-skied mountain valleys with a lake" loading="lazy" decoding="async"></span>
+    <span class="shot"><img src="../assets/sdedit/iterations-2-18-prompt.webp" alt="Nine outputs at 2 to 18 iterations with the sunrise landscape prompt, the first a band of colour, the rest pink-skied mountain valleys" loading="lazy" decoding="async" width="1379" height="307"></span>
+    <span class="shot" style="margin-top:.8rem"><img src="../assets/sdedit/iterations-20-180-prompt.webp" alt="Nine outputs at 20 to 180 iterations with the prompt, all pink-skied mountain valleys with a lake" loading="lazy" decoding="async" width="1379" height="307"></span>
     <figcaption>With a prompt (generated by GPT-4): <em>Create a stunning landscape image showcasing a serene
     mountain valley during sunrise. The scene should feature majestic mountains with snow-capped peaks in the
     background, casting a soft pink and orange glow from the rising sun. In the foreground, include a tranquil,
@@ -568,16 +568,16 @@ details.verb .tbl-scroll{padding:0 1rem 1rem;max-height:30rem;overflow:auto}
   <h2 id="sec:many-guides"><span class="secnum">8</span>Running over lots of different guides</h2>
 
   <figure class="fig">
-    <span class="shot"><img src="../assets/sdedit/guides-latent-1.webp" alt="A row of church interior guides paired with their washed-out latent representations" loading="lazy" decoding="async"></span>
-    <span class="shot" style="margin-top:.8rem"><img src="../assets/sdedit/guides-latent-2.webp" alt="A second row of guides — church interiors, a physics diagram, a castle painting — each beside its latent" loading="lazy" decoding="async"></span>
-    <span class="shot" style="margin-top:.8rem"><img src="../assets/sdedit/guides-latent-3.webp" alt="A third row: a college photograph, a cartoon horse and a grid of switchgear, each beside its latent" loading="lazy" decoding="async"></span>
+    <span class="shot"><img src="../assets/sdedit/guides-latent-1.webp" alt="A row of church interior guides paired with their washed-out latent representations" loading="lazy" decoding="async" width="1378" height="186"></span>
+    <span class="shot" style="margin-top:.8rem"><img src="../assets/sdedit/guides-latent-2.webp" alt="A second row of guides — church interiors, a physics diagram, a castle painting — each beside its latent" loading="lazy" decoding="async" width="1379" height="173"></span>
+    <span class="shot" style="margin-top:.8rem"><img src="../assets/sdedit/guides-latent-3.webp" alt="A third row: a college photograph, a cartoon horse and a grid of switchgear, each beside its latent" loading="lazy" decoding="async" width="1377" height="232"></span>
     <figcaption>Input and latent space.</figcaption>
   </figure>
 
   <figure class="fig">
-    <span class="shot"><img src="../assets/sdedit/guides-inputs.webp" alt="A strip of the eleven input guides: line drawings, photographs, diagrams and flat paintings" loading="lazy" decoding="async"></span>
-    <span class="shot" style="margin-top:.8rem"><img src="../assets/sdedit/guides-outputs-20.webp" alt="The eleven outputs at 20 iterations, each keeping the layout of its guide" loading="lazy" decoding="async"></span>
-    <span class="shot" style="margin-top:.8rem"><img src="../assets/sdedit/guides-outputs-100.webp" alt="The same eleven at 100 iterations, smoother and further from the guides" loading="lazy" decoding="async"></span>
+    <span class="shot"><img src="../assets/sdedit/guides-inputs.webp" alt="A strip of the eleven input guides: line drawings, photographs, diagrams and flat paintings" loading="lazy" decoding="async" width="1408" height="129"></span>
+    <span class="shot" style="margin-top:.8rem"><img src="../assets/sdedit/guides-outputs-20.webp" alt="The eleven outputs at 20 iterations, each keeping the layout of its guide" loading="lazy" decoding="async" width="1377" height="250"></span>
+    <span class="shot" style="margin-top:.8rem"><img src="../assets/sdedit/guides-outputs-100.webp" alt="The same eleven at 100 iterations, smoother and further from the guides" loading="lazy" decoding="async" width="1377" height="250"></span>
     <figcaption>Input and output at 20 iterations (<span class="math">t<sub>0</sub></span> = 0.4, guidance
     scale = 0.9, seed = 30) (Word reduces quality). Bottom is at 100 iterations. I think it&rsquo;s better at
     20.</figcaption>
