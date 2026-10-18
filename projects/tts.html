@@ -3,6 +3,19 @@ import { KokoroTTS } from 'https://cdn.jsdelivr.net/npm/kokoro-js@1.2.1/dist/kok
 
 let tts = null;
 
+// ONNX Runtime keeps a GPU buffer for every tensor size it has seen, so a long document can run the
+// GPU out of memory (Firefox on integrated graphics does so within a few dozen chunks). The device
+// is then lost and ONNX Runtime's pending run never settles, so report the loss for the page to
+// replace this worker, which starts again on a fresh device.
+if (self.GPUAdapter) {
+  const requestDevice = GPUAdapter.prototype.requestDevice;
+  GPUAdapter.prototype.requestDevice = async function (...args) {
+    const device = await requestDevice.apply(this, args);
+    device.lost.then((info) => self.postMessage({ type: 'lost', message: info.message || info.reason || 'unknown' }));
+    return device;
+  };
+}
+
 self.onmessage = async ({ data: m }) => {
   try {
     if (m.type === 'load') {
@@ -13,7 +26,16 @@ self.onmessage = async ({ data: m }) => {
       });
       self.postMessage({ type: 'ok', id: m.id });
     } else if (m.type === 'generate') {
-      const out = await tts.generate(m.text, { voice: m.voice, speed: m.speed });
+      // kokoro-js fetches each voice file from Hugging Face on first use, so a dropped connection
+      // fails the call with "Failed to fetch". Retry those with backoff rather than abandon the render.
+      let out;
+      for (let attempt = 0; ; attempt++) {
+        try { out = await tts.generate(m.text, { voice: m.voice, speed: m.speed }); break; }
+        catch (err) {
+          if (attempt >= 4 || !/fetch|network/i.test(String(err?.message || err))) throw err;
+          await new Promise(r => setTimeout(r, 2000 * 2 ** attempt));
+        }
+      }
       const pcm = new Float32Array(out.audio);
       self.postMessage({ type: 'ok', id: m.id, pcm, sr: out.sampling_rate }, [pcm.buffer]);
     }
@@ -164,25 +186,35 @@ self.onmessage = async ({ data: m }) => {
 </script><script id=mp3WorkerSrc type=text/worker>
 // Classic worker: lamejs is a UMD build that sets a global.
 importScripts('https://cdn.jsdelivr.net/npm/lamejs@1.2.1/lame.min.js');
+// Streaming: 'start', then 'append' audio a piece at a time, then 'finish' for the file. A book can
+// run to many hours, too long to hold as one buffer, so the page never joins the audio up itself.
+const block = 1152 * 20;
+const i16 = new Int16Array(block);
+let enc = null, parts = [];
 self.onmessage = ({ data: m }) => {
   try {
-    const enc = new lamejs.Mp3Encoder(1, m.sr, m.kbps);
-    const pcm = m.pcm, n = pcm.length, block = 1152 * 20;
-    const parts = [];
-    const i16 = new Int16Array(block);
-    for (let o = 0; o < n; o += block) {
-      const len = Math.min(block, n - o);
-      for (let i = 0; i < len; i++) {
-        const s = Math.max(-1, Math.min(1, pcm[o + i]));
-        i16[i] = s < 0 ? s * 0x8000 : s * 0x7fff;
+    if (m.type === 'start') {
+      enc = new lamejs.Mp3Encoder(1, m.sr, m.kbps);
+      parts = [];
+      self.postMessage({ type: 'ok', id: m.id });
+    } else if (m.type === 'append') {
+      const pcm = m.pcm, n = pcm.length;
+      for (let o = 0; o < n; o += block) {
+        const len = Math.min(block, n - o);
+        for (let i = 0; i < len; i++) {
+          const s = Math.max(-1, Math.min(1, pcm[o + i]));
+          i16[i] = s < 0 ? s * 0x8000 : s * 0x7fff;
+        }
+        const buf = enc.encodeBuffer(len === block ? i16 : i16.subarray(0, len));
+        if (buf.length) parts.push(new Uint8Array(buf));
       }
-      const buf = enc.encodeBuffer(len === block ? i16 : i16.subarray(0, len));
-      if (buf.length) parts.push(new Uint8Array(buf));
-      if ((o / block) % 50 === 0) self.postMessage({ type: 'progress', done: o / n });
+      self.postMessage({ type: 'ok', id: m.id });
+    } else if (m.type === 'finish') {
+      const tail = enc.flush();
+      if (tail.length) parts.push(new Uint8Array(tail));
+      self.postMessage({ type: 'ok', id: m.id, blob: new Blob(parts, { type: 'audio/mpeg' }) });
+      enc = null; parts = [];
     }
-    const tail = enc.flush();
-    if (tail.length) parts.push(new Uint8Array(tail));
-    self.postMessage({ type: 'ok', id: m.id, blob: new Blob(parts, { type: 'audio/mpeg' }) });
   } catch (err) {
     self.postMessage({ type: 'error', id: m.id, message: String(err?.message || err) });
   }
@@ -529,6 +561,12 @@ function spawnWorker(scriptId, onProgress, type = 'module') {
   let seq = 0;
   worker.onmessage = ({ data }) => {
     if (data.type === 'progress') { onProgress?.(data.p ?? data); return; }
+    if (data.type === 'lost') {
+      const err = Object.assign(new Error(`The GPU device was lost (${data.message}).`), { gpuLost: true });
+      for (const p of pending.values()) p.reject(err);
+      pending.clear();
+      return;
+    }
     const p = pending.get(data.id);
     if (!p) return;
     pending.delete(data.id);
@@ -1647,7 +1685,10 @@ function newRun() {
   const speed = parseFloat((mode === 'studio' ? studioSpeed : liveSpeed).value);
   const key = renderKey(engine, text, voice, speed);
   if (session?.key === key) return continueRun(session);
-  const maxChars = engine === 'chatterbox' ? CB_BUILDS[cbBuild.value].maxChars : 260;
+  // Kokoro on WebGPU needs GPU memory in proportion to chunk length: ~300-token chunks ran Firefox
+  // on integrated graphics out of memory, so it gets shorter chunks.
+  const maxChars = engine === 'chatterbox' ? CB_BUILDS[cbBuild.value].maxChars
+                 : engine === 'kokoro' && KOKORO_BUILDS[engines.kokoro?.build]?.load.device === 'webgpu' ? 180 : 260;
   const chunks = buildChunks(text, maxChars, engine === 'chatterbox' ? 140 : 110);
   return {
     active: false, paused: false, engine, key, chunks, voice, speed,
@@ -1750,8 +1791,7 @@ async function synthChunk(sess, i) {
   if (!text) {
     res = { pcm: new Float32Array(2400), sr: 24000 };
   } else if (engines[sess.engine]) {
-    const speed = sess.speed * speedFor(sess.engine, sess.voice);
-    res = await engines[sess.engine].rpc.call('generate', { text, voice: sess.voice, speed });
+    res = await generateWithWatchdog(sess, text);
   } else {
     const maxTokens = Math.min(1000, Math.round(text.length * 3.2) + 60);
     res = await chatterbox.rpc.call('generate', { text, key: sess.speakerKey, maxTokens });
@@ -1761,6 +1801,81 @@ async function synthChunk(sess, i) {
   sess.stats.audioSec += pcm.length / res.sr;
   const gap = sess.engine === 'chatterbox' ? (c.last ? 0.35 : 0.08) : (c.last ? 0.5 : 0.15);
   sess.rendered[i] = { pcm, sr: res.sr, gap };
+}
+
+// A WebGPU device can be lost partway through a long document (usually the GPU running out of
+// memory), and ONNX Runtime's pending run then never settles. The worker reports a lost device
+// itself; as a backstop each chunk also gets a deadline well beyond its expected time. Either way the
+// worker is replaced, the model reloaded from the browser cache, and the chunk tried again.
+const HUNG = Symbol('hung');
+
+function watchdogMs(sess, text) {
+  const { audioSec, genSec } = sess.stats;
+  if (!(genSec >= 5 && audioSec > 0)) return 180_000;     // warm-up: shader compiles, first runs
+  const expected = (text.length / 14) * (genSec / audioSec);   // ~14 characters per second of speech
+  return Math.max(30_000, expected * 8000);
+}
+
+async function generateWithWatchdog(sess, text, depth = 0) {
+  const name = sess.engine;
+  const speed = sess.speed * speedFor(name, sess.voice);
+  for (let attempt = 0; ; attempt++) {
+    const entry = engines[name];
+    if (!entry) throw new Error('The model was unloaded.');
+    await entry.ready;
+    let timer;
+    const deadline = new Promise((_, reject) => { timer = setTimeout(() => reject(HUNG), watchdogMs(sess, text)); });
+    try {
+      return await Promise.race([entry.rpc.call('generate', { text, voice: sess.voice, speed }), deadline]);
+    } catch (err) {
+      if (err !== HUNG && !err?.gpuLost) throw err;
+      const label = TTS_ENGINES[name].name;
+      console.warn(err === HUNG ? `${label} did not answer within ${Math.round(watchdogMs(sess, text) / 1000)} s` : err.message,
+                   `Restarting its worker (attempt ${attempt + 1}).`);
+      if (sess === session) status(`${label} stalled · restarting it and retrying…`);
+      await restartEngine(name, entry);
+      // A chunk that also fails on a fresh device is too long for this GPU's memory: read it in two
+      // halves. Each half comes back through here, so one that is still too long is halved again, and
+      // so on down. A half is split on its first failure: it already started on a fresh device.
+      if ((attempt >= 1 || depth > 0) && text.length > 20 && depth < 8) {
+        const [a, b] = halve(text);
+        const ra = await generateWithWatchdog(sess, a, depth + 1);
+        const rb = await generateWithWatchdog(sess, b, depth + 1);
+        const pa = trimSilence(ra.pcm, ra.sr), pb = trimSilence(rb.pcm, rb.sr);
+        const pcm = new Float32Array(pa.length + Math.round(ra.sr * 0.12) + pb.length);
+        pcm.set(pa, 0);
+        pcm.set(pb, pcm.length - pb.length);
+        return { pcm, sr: ra.sr };
+      }
+      if (attempt >= 2) throw new Error(`${label} keeps stalling (the GPU may have reset). Reload the page and try again.`);
+    } finally {
+      clearTimeout(timer);
+    }
+  }
+}
+
+/** Split text near its middle, preferring a sentence end, then a clause break, over a plain space. */
+function halve(text) {
+  const mid = text.length / 2;
+  for (const re of [/[.!?]['"’”)]?\s+/g, /[,;:)–—]\s+/g, /\s+/g]) {
+    let best = -1;
+    for (const m of text.matchAll(re)) {
+      const i = m.index + m[0].length;
+      if (best < 0 || Math.abs(i - mid) < Math.abs(best - mid)) best = i;
+    }
+    if (best > text.length * 0.25 && best < text.length * 0.75) return [text.slice(0, best).trim(), text.slice(best).trim()];
+  }
+  const i = Math.round(mid);
+  return [text.slice(0, i), text.slice(i)];
+}
+
+/** Replace a stalled engine worker with a fresh one on the same build. */
+function restartEngine(name, stalled) {
+  if (engines[name] !== stalled) return engines[name]?.ready;   // already replaced
+  stalled.rpc.terminate();
+  engines[name] = null;
+  const studio = mode === 'studio' && name === 'kokoro';
+  return ensureEngine(name, stalled.build, studio ? cbStatus : liveStatus, studio ? 'cb' : 'live');
 }
 
 async function generateLoop(sess) {
@@ -1902,24 +2017,27 @@ async function exportAudio() {
     }
     if (job.cancelled || sess.rendered.some(r => !r)) { status('Download cancelled.'); return; }
 
-    const parts = sess.rendered;
-    const sr = parts[0].sr;
-    const out = new Float32Array(parts.reduce((s, p) => s + p.pcm.length + Math.round(p.gap * sr), 0));
-    let o = 0;
-    for (const p of parts) { out.set(p.pcm, o); o += p.pcm.length + Math.round(p.gap * sr); }
+    // The audio is handed to the encoders piece by piece (each chunk, then its pause): a whole book
+    // can be many hours, which would not fit in one buffer.
+    const sr = sess.rendered[0].sr;
+    const pieces = sess.rendered.flatMap(p => {
+      const gap = Math.round(p.gap * sr);
+      return gap ? [p.pcm, new Float32Array(gap)] : [p.pcm];
+    });
+    const total = pieces.reduce((s, p) => s + p.length, 0);
 
     const fmt = dlFormat.value;
-    status(`Encoding ${fmtDur(out.length / sr)} of audio as ${fmt.toUpperCase()}…`);
-    const blob = fmt === 'mp3' ? await encodeMp3(out, sr)
-               : fmt === 'm4a' ? await encodeM4a(out, sr)
-               : encodeWav(out, sr);
+    status(`Encoding ${fmtDur(total / sr)} of audio as ${fmt.toUpperCase()}…`);
+    const blob = fmt === 'mp3' ? await encodeMp3(pieces, sr, total)
+               : fmt === 'm4a' ? await encodeM4a(pieces, sr)
+               : encodeWav(pieces, sr, total);
     const name = `${docName}.${fmt}`;
     const a = document.createElement('a');
     a.href = URL.createObjectURL(blob);
     a.download = name;
     a.click();
-    setTimeout(() => URL.revokeObjectURL(a.href), 30_000);
-    status(`Saved ${name} · ${fmtDur(out.length / sr)} · ${(blob.size / 1_048_576).toFixed(1)} MB`);
+    setTimeout(() => URL.revokeObjectURL(a.href), 60_000);
+    status(`Saved ${name} · ${fmtDur(total / sr)} · ${(blob.size / 1_048_576).toFixed(1)} MB`);
   } catch (err) {
     status('Download failed: ' + err.message, true);
   } finally {
@@ -1928,19 +2046,35 @@ async function exportAudio() {
   }
 }
 
-async function encodeMp3(pcm, sr) {
-  const rpc = spawnWorker('mp3WorkerSrc', (p) => {
-    if (p.done != null) status(`Encoding MP3… ${Math.round(p.done * 100)}%`);
-  }, 'classic');
+async function encodeMp3(pieces, sr, total) {
+  const rpc = spawnWorker('mp3WorkerSrc', null, 'classic');
   try {
-    const copy = pcm.slice();
-    return (await rpc.call('encode', { pcm: copy, sr, kbps: 64 }, [copy.buffer])).blob;
+    await rpc.call('start', { sr, kbps: 64 });
+    // Send about a minute at a time, waiting for each, so copies never pile up in the worker's queue.
+    const batch = sr * 60;
+    let buf = new Float32Array(batch), fill = 0, sent = 0;
+    const flush = async () => {
+      const pcm = buf.slice(0, fill);
+      await rpc.call('append', { pcm }, [pcm.buffer]);
+      sent += fill; fill = 0;
+      status(`Encoding MP3… ${Math.round(sent / total * 100)}%`);
+    };
+    for (const p of pieces) {
+      for (let o = 0; o < p.length; ) {
+        const n = Math.min(batch - fill, p.length - o);
+        buf.set(p.subarray(o, o + n), fill);
+        fill += n; o += n;
+        if (fill === batch) await flush();
+      }
+    }
+    if (fill) await flush();
+    return (await rpc.call('finish')).blob;
   } finally {
     rpc.terminate();
   }
 }
 
-async function encodeM4a(pcm, sr) {
+async function encodeM4a(pieces, sr) {
   if (!('AudioEncoder' in window)) throw new Error('This browser cannot encode AAC. Choose MP3 instead.');
   let rate = sr;
   let cfg = { codec: 'mp4a.40.2', sampleRate: rate, numberOfChannels: 1, bitrate: 64_000 };
@@ -1948,7 +2082,6 @@ async function encodeM4a(pcm, sr) {
     rate = 48_000;
     cfg = { ...cfg, sampleRate: rate };
     if (!(await AudioEncoder.isConfigSupported(cfg)).supported) throw new Error('AAC encoding is not available here. Choose MP3 instead.');
-    pcm = resampleLinear(pcm, sr, rate);
   }
   const { Muxer, ArrayBufferTarget } = await import(MP4_MUXER_URL);
   const muxer = new Muxer({
@@ -1958,14 +2091,19 @@ async function encodeM4a(pcm, sr) {
   let failure = null;
   const enc = new AudioEncoder({ output: (chunk, meta) => muxer.addAudioChunk(chunk, meta), error: (e) => { failure = e; } });
   enc.configure(cfg);
-  for (let o = 0; o < pcm.length; o += rate) {           // one second per frame
-    const data = pcm.slice(o, Math.min(pcm.length, o + rate));
-    const frame = new AudioData({ format: 'f32', sampleRate: rate, numberOfFrames: data.length, numberOfChannels: 1,
-                                  timestamp: Math.round(o / rate * 1e6), data });
-    enc.encode(frame);
-    frame.close();
-    if (enc.encodeQueueSize > 16) await sleep(0);
-    if (failure) throw failure;
+  let t = 0;                                              // samples written so far, at `rate`
+  for (const piece of pieces) {
+    const pcm = resampleLinear(piece, sr, rate);
+    for (let o = 0; o < pcm.length; o += rate) {         // at most one second per frame
+      const data = pcm.slice(o, Math.min(pcm.length, o + rate));
+      const frame = new AudioData({ format: 'f32', sampleRate: rate, numberOfFrames: data.length, numberOfChannels: 1,
+                                    timestamp: Math.round(t / rate * 1e6), data });
+      t += data.length;
+      enc.encode(frame);
+      frame.close();
+      if (enc.encodeQueueSize > 16) await sleep(0);
+      if (failure) throw failure;
+    }
   }
   await enc.flush();
   enc.close();
@@ -2025,20 +2163,24 @@ async function decodeTo24kMono(file, maxSecs) {
   return pcm;
 }
 
-function encodeWav(f32, sr) {
-  const n = f32.length;
-  const buf = new ArrayBuffer(44 + n * 2);
-  const v = new DataView(buf);
-  const str = (o, s) => { for (let i = 0; i < s.length; i++) v.setUint8(o + i, s.charCodeAt(i)); };
-  str(0, 'RIFF'); v.setUint32(4, 36 + n * 2, true); str(8, 'WAVE');
-  str(12, 'fmt '); v.setUint32(16, 16, true); v.setUint16(20, 1, true); v.setUint16(22, 1, true);
-  v.setUint32(24, sr, true); v.setUint32(28, sr * 2, true); v.setUint16(32, 2, true); v.setUint16(34, 16, true);
-  str(36, 'data'); v.setUint32(40, n * 2, true);
-  for (let i = 0; i < n; i++) {
-    const s = Math.max(-1, Math.min(1, f32[i]));
-    v.setInt16(44 + i * 2, s < 0 ? s * 0x8000 : s * 0x7fff, true);
+function encodeWav(pieces, sr, n) {
+  if (44 + n * 2 > 0xffffffff) throw new Error('This is too long for a WAV file (over 4 GB). Choose MP3 instead.');
+  const head = new DataView(new ArrayBuffer(44));
+  const str = (o, s) => { for (let i = 0; i < s.length; i++) head.setUint8(o + i, s.charCodeAt(i)); };
+  str(0, 'RIFF'); head.setUint32(4, 36 + n * 2, true); str(8, 'WAVE');
+  str(12, 'fmt '); head.setUint32(16, 16, true); head.setUint16(20, 1, true); head.setUint16(22, 1, true);
+  head.setUint32(24, sr, true); head.setUint32(28, sr * 2, true); head.setUint16(32, 2, true); head.setUint16(34, 16, true);
+  str(36, 'data'); head.setUint32(40, n * 2, true);
+  const parts = [head.buffer];
+  for (const f32 of pieces) {
+    const i16 = new Int16Array(f32.length);           // the platform is little-endian, as WAV wants
+    for (let i = 0; i < f32.length; i++) {
+      const s = Math.max(-1, Math.min(1, f32[i]));
+      i16[i] = s < 0 ? s * 0x8000 : s * 0x7fff;
+    }
+    parts.push(i16);
   }
-  return new Blob([buf], { type: 'audio/wav' });
+  return new Blob(parts, { type: 'audio/wav' });
 }
 
 // ─────────────────────────────────────────────────────────────────
